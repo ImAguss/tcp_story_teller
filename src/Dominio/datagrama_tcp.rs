@@ -35,11 +35,11 @@ pub struct CabeceraTCP {
     pub ack_abs: Option<u32>,
     pub ack_rel: Option<u32>,
 
-    pub longitud_cabecera_bytes: u8,
+    pub longitud_cabecera_bytes: usize,
     pub flags_activas: FlagsTCP,
     pub ventana_recepcion: u16,
     pub checksum: u16,
-    pub puntero_urgente: Option<u16>,
+    pub puntero_urgente: u16,
 
     pub opciones: Option<Vec<OpcionesTCP>>,
     pub longitud_datos: usize,
@@ -96,15 +96,36 @@ impl std::fmt::Display for CabeceraTCP {
             _ => "Ninguna".to_string(),
         };
 
-        writeln!(f, "┌────────────────────────────────────────────────────────────────────────┐")?;
+        writeln!(
+            f,
+            "┌────────────────────────────────────────────────────────────────────────┐"
+        )?;
         writeln!(f, "│ Flujo: {} ──> {}", self.origen, self.destino)?;
-        writeln!(f, "├────────────────────────────────────────────────────────────────────────┤")?;
-        writeln!(f, "│ Secuencia (Seq):      {} (Abs: {})", self.seq_rel, self.seq_abs)?;
+        writeln!(
+            f,
+            "├────────────────────────────────────────────────────────────────────────┤"
+        )?;
+        writeln!(
+            f,
+            "│ Secuencia (Seq):      {} (Abs: {})",
+            self.seq_rel, self.seq_abs
+        )?;
         writeln!(f, "│ Reconocimiento (Ack): {}", ack_str)?;
         writeln!(f, "│ Flags de control:     [ {} ]", self.flags_activas)?;
-        writeln!(f, "│ Ventana (rwnd):       {} bytes", self.ventana_recepcion)?;
-        writeln!(f, "│ Longitud payload:     {} bytes (Cabecera: {} bytes)", self.longitud_datos, self.longitud_cabecera_bytes)?;
+        writeln!(
+            f,
+            "│ Ventana (rwnd):       {} bytes",
+            self.ventana_recepcion
+        )?;
+        writeln!(
+            f,
+            "│ Longitud payload:     {} bytes (Cabecera: {} bytes)",
+            self.longitud_datos, self.longitud_cabecera_bytes
+        )?;
         writeln!(f, "│ Opciones TCP:         {}", opciones_str)?;
-        write!(f,   "└────────────────────────────────────────────────────────────────────────┘")
+        write!(
+            f,
+            "└────────────────────────────────────────────────────────────────────────┘"
+        )
     }
 }
