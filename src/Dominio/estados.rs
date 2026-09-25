@@ -1,6 +1,13 @@
+use std::net::IpAddr;
+
+use etherparse::{NetSlice, TransportSlice};
+
 #[allow(dead_code)]
-use crate::Dominio::datagrama_tcp::{Extremo, FlagsTCP};
-use crate::Dominio::visual::{EtapaConexion, PasoCierre, PasoHandshake, PasoTCP};
+use crate::Dominio::datagrama_tcp::{CabeceraTCP, Extremo, FlagsTCP};
+use crate::{
+    Captura::errores::ErrorProcesamiento,
+    Dominio::visual::{Direccion, EtapaConexion, PasoCierre, PasoHandshake, PasoTCP},
+};
 
 pub struct InformeSesion {
     pub isn_cliente: Option<u32>,
@@ -15,6 +22,207 @@ pub struct InformeSesion {
 
     pub tiempo_inicio: Option<std::time::Instant>,
     pub pasos: Vec<PasoTCP>,
+}
+
+impl InformeSesion {
+    pub fn new() -> Self {
+        return InformeSesion {
+            isn_cliente: None,
+            isn_servidor: None,
+            extremo_cliente: None,
+            extremo_receptor: None,
+            ultimo_ack_visto: None,
+            contador_ack_dupl: 0,
+            ventana_contexto_actual: 0,
+            tiempo_inicio: None,
+            pasos: Vec::new(),
+        };
+    }
+
+    pub fn procesar_paquete(
+        &mut self,
+        paquete: Vec<u8>,
+        indice: usize,
+    ) -> Result<(), ErrorProcesamiento> {
+        let Ok(paquete) = etherparse::SlicedPacket::from_ethernet(&paquete) else {
+            return Err(ErrorProcesamiento);
+        };
+
+        let (ip_origen, ip_destino) = match paquete.net {
+            Some(NetSlice::Ipv4(ipv4)) => (
+                IpAddr::V4(ipv4.header().source_addr()),
+                IpAddr::V4(ipv4.header().destination_addr()),
+            ),
+            Some(NetSlice::Ipv6(ipv6)) => (
+                IpAddr::V6(ipv6.header().source_addr()),
+                IpAddr::V6(ipv6.header().destination_addr()),
+            ),
+            _ => return Err(ErrorProcesamiento),
+        };
+
+        let tcp = match paquete.transport {
+            Some(TransportSlice::Tcp(tcp)) => tcp,
+            _ => return Err(ErrorProcesamiento),
+        };
+
+        let (puerto_origen, puerto_destino) = (tcp.source_port(), tcp.destination_port());
+        let origen = Extremo {
+            ip: ip_origen,
+            puerto: puerto_origen,
+        };
+        let destino = Extremo {
+            ip: ip_destino,
+            puerto: puerto_destino,
+        };
+
+        let flags = FlagsTCP {
+            syn: tcp.syn(),
+            ack: tcp.ack(),
+            fin: tcp.fin(),
+            rst: tcp.rst(),
+            psh: tcp.psh(),
+            urg: tcp.urg(),
+        };
+
+        let seq_abs = tcp.sequence_number();
+        let ack_abs = if tcp.ack() {
+            Some(tcp.acknowledgment_number())
+        } else {
+            None
+        };
+        let len_datos = tcp.payload().len();
+        let ventana = tcp.window_size();
+        let checksum = tcp.checksum();
+        let puntero_urgente = tcp.urgent_pointer();
+        let longitud_cabecera_bytes = tcp.header_len();
+
+        if self.pasos.is_empty() {
+            self.isn_cliente = Some(seq_abs);
+            self.extremo_cliente = Some(origen.clone());
+            self.extremo_receptor = Some(destino.clone());
+            self.tiempo_inicio = Some(std::time::Instant::now());
+        }
+
+        let direccion = self.obtener_direccion(ip_origen);
+
+        if self.isn_servidor.is_none() && direccion == Direccion::ServidorCliente && flags.syn {
+            self.isn_servidor = Some(seq_abs);
+        }
+
+        let tiempo_relativo = self
+            .tiempo_inicio
+            .map(|t0| std::time::Instant::now().duration_since(t0))
+            .unwrap_or(std::time::Duration::ZERO);
+
+        let (seq_rel, ack_rel) = match direccion {
+            Direccion::ClienteServidor => {
+                let isn_emisor = self.isn_cliente.unwrap_or(seq_abs);
+                calcular_relativos(seq_abs, ack_abs, isn_emisor, self.isn_servidor)
+            }
+            Direccion::ServidorCliente => {
+                let isn_emisor = self.isn_servidor.unwrap_or(seq_abs);
+                calcular_relativos(seq_abs, ack_abs, isn_emisor, self.isn_cliente)
+            }
+        };
+
+        let etapa = if self.pasos.is_empty() {
+            EtapaConexion::Handshake(PasoHandshake::Syn)
+        } else if self.pasos.len() == 1 && flags.syn && flags.ack {
+            EtapaConexion::Handshake(PasoHandshake::SynAck)
+        } else if self.pasos.len() == 2 && flags.ack && len_datos == 0 {
+            EtapaConexion::Handshake(PasoHandshake::Ack)
+        } else {
+            deducir_etapa(
+                &flags,
+                len_datos,
+                ventana,
+                Some(seq_rel),
+                None,
+                ack_rel,
+                self.ultimo_ack_visto,
+                self.contador_ack_dupl,
+            )
+            .unwrap_or(EtapaConexion::TransferenciaDatos {
+                bytes: len_datos,
+                es_push: flags.psh,
+            })
+        };
+
+        if let Some(ack) = ack_rel {
+            if self.ultimo_ack_visto == Some(ack) && len_datos == 0 {
+                self.contador_ack_dupl += 1;
+            } else if self.ultimo_ack_visto.map_or(true, |ul| ack > ul) {
+                self.contador_ack_dupl = 0;
+                self.ultimo_ack_visto = Some(ack);
+            }
+        }
+
+        let paso = PasoTCP::new(
+            indice,
+            tiempo_relativo,
+            origen,
+            destino,
+            direccion,
+            etapa,
+            seq_abs,
+            seq_rel,
+            ack_abs,
+            ack_rel,
+            longitud_cabecera_bytes,
+            flags,
+            ventana,
+            checksum,
+            puntero_urgente,
+            None,
+            len_datos,
+        );
+        self.pasos.push(paso);
+
+        Ok(())
+    }
+
+    fn obtener_direccion(&self, ip_origen: IpAddr) -> Direccion {
+        let direccion = if self.extremo_cliente.as_ref().unwrap().ip == ip_origen {
+            Direccion::ClienteServidor
+        } else {
+            Direccion::ServidorCliente
+        };
+
+        return direccion;
+    }
+
+    pub fn conexion_terminada(&self) -> bool {
+        let Some(ultimo) = self.pasos.last() else {
+            return false;
+        };
+        if ultimo.cabecera.flags_activas.rst {
+            return true;
+        }
+
+        let paquetes_fin: Vec<&PasoTCP> = self
+            .pasos
+            .iter()
+            .filter(|x| x.cabecera.flags_activas.fin)
+            .collect();
+
+        let fin_cliente = self
+            .pasos
+            .iter()
+            .any(|p| p.direccion == Direccion::ClienteServidor && p.cabecera.flags_activas.fin);
+
+        let fin_servidor = self
+            .pasos
+            .iter()
+            .any(|p| p.direccion == Direccion::ServidorCliente && p.cabecera.flags_activas.fin);
+
+        if (fin_cliente && fin_servidor)
+            && (ultimo.cabecera.flags_activas.ack && !ultimo.cabecera.flags_activas.fin)
+        {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 pub fn calcular_relativos(

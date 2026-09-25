@@ -1,4 +1,4 @@
-use crate::Dominio::datagrama_tcp::CabeceraTCP;
+use crate::Dominio::datagrama_tcp::{CabeceraTCP, Extremo, FlagsTCP, OpcionesTCP};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PasoHandshake {
@@ -238,5 +238,47 @@ impl PasoTCP {
             self.cabecera,
             self.explicacion()
         )
+    }
+
+    pub fn new(
+        indice: usize,
+        tiempo_relativo: std::time::Duration,
+        origen: Extremo,
+        destino: Extremo,
+        direccion: Direccion,
+        etapa: EtapaConexion,
+        seq_abs: u32,
+        seq_rel: u32,
+        ack_abs: Option<u32>,
+        ack_rel: Option<u32>,
+        longitud_cabecera_bytes: usize,
+        flags_activas: FlagsTCP,
+        ventana_recepcion: u16,
+        checksum: u16,
+        puntero_urgente: u16,
+        opciones: Option<Vec<OpcionesTCP>>,
+        longitud_datos: usize,
+    ) -> Self {
+        return PasoTCP {
+            indice,
+            tiempo_relativo,
+            cabecera: CabeceraTCP {
+                origen,
+                destino,
+                seq_abs,
+                seq_rel,
+                ack_abs,
+                ack_rel,
+                longitud_cabecera_bytes,
+                flags_activas,
+                ventana_recepcion,
+                checksum,
+                puntero_urgente,
+                opciones,
+                longitud_datos,
+            },
+            direccion,
+            etapa,
+        };
     }
 }
