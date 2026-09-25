@@ -96,6 +96,18 @@ impl InformeSesion {
         let puntero_urgente = tcp.urgent_pointer();
         let longitud_cabecera_bytes = tcp.header_len();
 
+        if let Some(ultimo) = self.pasos.last() {
+            if ultimo.cabecera.origen == origen
+                && ultimo.cabecera.destino == destino
+                && ultimo.cabecera.seq_abs == seq_abs
+                && ultimo.cabecera.ack_abs == ack_abs
+                && ultimo.cabecera.flags_activas == flags
+                && ultimo.cabecera.longitud_datos == len_datos
+            {
+                return Ok(());
+            }
+        }
+
         if self.pasos.is_empty() {
             self.isn_cliente = Some(seq_abs);
             self.extremo_cliente = Some(origen.clone());
@@ -103,7 +115,7 @@ impl InformeSesion {
             self.tiempo_inicio = Some(std::time::Instant::now());
         }
 
-        let direccion = self.obtener_direccion(ip_origen);
+        let direccion = self.obtener_direccion(&origen);
 
         if self.isn_servidor.is_none() && direccion == Direccion::ServidorCliente && flags.syn {
             self.isn_servidor = Some(seq_abs);
@@ -181,8 +193,8 @@ impl InformeSesion {
         Ok(())
     }
 
-    fn obtener_direccion(&self, ip_origen: IpAddr) -> Direccion {
-        let direccion = if self.extremo_cliente.as_ref().unwrap().ip == ip_origen {
+    fn obtener_direccion(&self, origen: &Extremo) -> Direccion {
+        let direccion = if self.extremo_cliente.as_ref() == Some(origen) {
             Direccion::ClienteServidor
         } else {
             Direccion::ServidorCliente
