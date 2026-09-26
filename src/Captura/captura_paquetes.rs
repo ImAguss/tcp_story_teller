@@ -1,7 +1,6 @@
-use etherparse::{SlicedPacket, err::packet::SliceError};
 use pcapture::{Capture, Device};
 
-use crate::Captura::errores::{ErrorCaptura, ErrorProcesamiento};
+use crate::Captura::errores::ErrorCaptura;
 use crate::Dominio::estados::InformeSesion;
 
 fn obtener_interfaz(interfaz: Option<&str>) -> Option<Device> {
@@ -41,9 +40,7 @@ pub fn capturar_paquetes(
 
     loop {
         if let Ok(paquete) = capturador.next_as_vec() {
-            if let Ok(()) = informe.procesar_paquete(paquete, indice) {
-                indice += 1;
-
+            if let Ok(()) = informe.procesar_paquete(paquete) {
                 if informe.conexion_terminada() {
                     return Ok(informe);
                 }

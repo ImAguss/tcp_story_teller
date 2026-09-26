@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use etherparse::{NetSlice, TransportSlice};
 
 #[allow(dead_code)]
-use crate::Dominio::datagrama_tcp::{CabeceraTCP, Extremo, FlagsTCP};
+use crate::Dominio::datagrama_tcp::{Extremo, FlagsTCP};
 use crate::{
     Captura::errores::ErrorProcesamiento,
     Dominio::visual::{Direccion, EtapaConexion, PasoCierre, PasoHandshake, PasoTCP},
@@ -39,11 +39,7 @@ impl InformeSesion {
         };
     }
 
-    pub fn procesar_paquete(
-        &mut self,
-        paquete: Vec<u8>,
-        indice: usize,
-    ) -> Result<(), ErrorProcesamiento> {
+    pub fn procesar_paquete(&mut self, paquete: Vec<u8>) -> Result<(), ErrorProcesamiento> {
         let Ok(paquete) = etherparse::SlicedPacket::from_ethernet(&paquete) else {
             return Err(ErrorProcesamiento);
         };
@@ -169,6 +165,13 @@ impl InformeSesion {
             }
         }
 
+        let payload = if tcp.payload().len() > 0 {
+            Some(tcp.payload().to_vec())
+        } else {
+            None
+        };
+        let indice = self.pasos.len() + 1;
+
         let paso = PasoTCP::new(
             indice,
             tiempo_relativo,
@@ -185,6 +188,7 @@ impl InformeSesion {
             ventana,
             checksum,
             puntero_urgente,
+            payload,
             None,
             len_datos,
         );
@@ -211,7 +215,7 @@ impl InformeSesion {
             return true;
         }
 
-        let paquetes_fin: Vec<&PasoTCP> = self
+        let _paquetes_fin: Vec<&PasoTCP> = self
             .pasos
             .iter()
             .filter(|x| x.cabecera.flags_activas.fin)

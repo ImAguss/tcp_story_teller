@@ -256,6 +256,7 @@ impl PasoTCP {
         ventana_recepcion: u16,
         checksum: u16,
         puntero_urgente: u16,
+        payload: Option<Vec<u8>>,
         opciones: Option<Vec<OpcionesTCP>>,
         longitud_datos: usize,
     ) -> Self {
@@ -274,6 +275,7 @@ impl PasoTCP {
                 ventana_recepcion,
                 checksum,
                 puntero_urgente,
+                payload,
                 opciones,
                 longitud_datos,
             },
