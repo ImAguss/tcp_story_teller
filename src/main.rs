@@ -2,27 +2,18 @@ mod Captura;
 mod Dominio;
 mod Escenarios;
 mod Presentacion;
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    sync::mpsc,
-    time::Duration,
-};
+use std::{net::Ipv4Addr, sync::mpsc, time::Duration};
 
-use crate::{
-    Captura::{
-        captura_paquetes::{self, capturar_paquetes},
-        errores::ErrorCaptura::ErrorCapturador,
-    },
-    Dominio::datagrama_tcp::Extremo,
-    Escenarios::local_simple::ejecutar,
-};
+use crate::Escenarios::local_simple::ejecutar;
+use crate::Presentacion::presentacion::ejecutar_presentacion;
+use crate::{Captura::captura_paquetes::capturar_paquetes, Dominio::datagrama_tcp::Extremo};
 
 fn main() {
     let (tx, rx) = mpsc::channel();
-    let handle_captura = std::thread::spawn(move || {
-        let informe = match capturar_paquetes(Some("lo"), 8080) {
+    let _handle_captura = std::thread::spawn(move || {
+        let _informe = match capturar_paquetes(Some("lo"), 8080) {
             Ok(i) => tx.send(i),
-            _ => return,
+            _ => panic!("Error al iniciar captura."),
         };
     });
 
@@ -33,11 +24,12 @@ fn main() {
         return;
     }
 
-    let informe = rx.recv_timeout(Duration::from_secs(10));
-
-    if let Ok(informe) = informe {
-        for i in &informe.pasos {
-            println!("{}", i.bloque_completo());
+    match rx.recv() {
+        Ok(informe) => {
+            if let Err(e) = ejecutar_presentacion(informe.pasos) {
+                eprintln!("Error al ejecutar presentacion: {}", e);
+            }
         }
+        Err(_) => eprintln!("Error en Hilo"),
     }
 }
