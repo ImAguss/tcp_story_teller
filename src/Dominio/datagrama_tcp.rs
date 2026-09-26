@@ -48,12 +48,6 @@ pub struct CabeceraTCP {
 
 // Implementaciones
 
-impl Extremo {
-    pub fn new(ip: IpAddr, puerto: u16) -> Self {
-        return Extremo { ip, puerto };
-    }
-}
-
 impl std::fmt::Display for Extremo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         return write!(f, "Ip: {} Puerto:{}", self.ip, self.puerto);
