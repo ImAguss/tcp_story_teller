@@ -41,6 +41,7 @@ pub struct CabeceraTCP {
     pub checksum: u16,
     pub puntero_urgente: u16,
 
+    pub payload: Option<Vec<u8>>,
     pub opciones: Option<Vec<OpcionesTCP>>,
     pub longitud_datos: usize,
 }
@@ -123,6 +124,73 @@ impl std::fmt::Display for CabeceraTCP {
             self.longitud_datos, self.longitud_cabecera_bytes
         )?;
         writeln!(f, "│ Opciones TCP:         {}", opciones_str)?;
+
+        if let Some(ref bytes) = self.payload {
+            if !bytes.is_empty() {
+                writeln!(
+                    f,
+                    "├────────────────────────────────────────────────────────────────────────┤"
+                )?;
+                if let Ok(json_val) = serde_json::from_slice::<serde_json::Value>(bytes) {
+                    writeln!(f, "│ Carga útil (JSON - {} bytes):", bytes.len())?;
+                    if let Ok(pretty) = serde_json::to_string_pretty(&json_val) {
+                        let lineas: Vec<&str> = pretty.lines().collect();
+                        let max_lineas = 8;
+                        for linea in lineas.iter().take(max_lineas) {
+                            let linea_formateada = if linea.chars().count() > 64 {
+                                format!("{}...", linea.chars().take(61).collect::<String>())
+                            } else {
+                                linea.to_string()
+                            };
+                            writeln!(f, "│   {}", linea_formateada)?;
+                        }
+                        if lineas.len() > max_lineas {
+                            writeln!(
+                                f,
+                                "│   [... {} líneas más | {} bytes totales ...]",
+                                lineas.len() - max_lineas,
+                                bytes.len()
+                            )?;
+                        }
+                    }
+                } else if let Ok(texto) = std::str::from_utf8(bytes) {
+                    let texto_limpio = texto.trim();
+                    if texto_limpio.chars().count() <= 64 && !texto_limpio.contains('\n') {
+                        writeln!(f, "│ Carga útil (Texto):   {}", texto_limpio)?;
+                    } else {
+                        writeln!(f, "│ Carga útil (Texto - {} bytes):", bytes.len())?;
+                        let lineas: Vec<&str> = texto_limpio.lines().collect();
+                        let max_lineas = 6;
+                        for linea in lineas.iter().take(max_lineas) {
+                            let linea_formateada = if linea.chars().count() > 64 {
+                                format!("{}...", linea.chars().take(61).collect::<String>())
+                            } else {
+                                linea.to_string()
+                            };
+                            writeln!(f, "│   {}", linea_formateada)?;
+                        }
+                        if lineas.len() > max_lineas {
+                            writeln!(
+                                f,
+                                "│   [... {} líneas más | {} bytes totales ...]",
+                                lineas.len() - max_lineas,
+                                bytes.len()
+                            )?;
+                        }
+                    }
+                } else {
+                    let hex_preview = bytes
+                        .iter()
+                        .take(16)
+                        .map(|b| format!("{:02X}", b))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    writeln!(f, "│ Carga útil (Hex - {} bytes):", bytes.len())?;
+                    writeln!(f, "│   {} ...", hex_preview)?;
+                }
+            }
+        }
+
         write!(
             f,
             "└────────────────────────────────────────────────────────────────────────┘"
