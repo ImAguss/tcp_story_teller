@@ -1,11 +1,10 @@
-use crate::{Dominio::datagrama_tcp::Extremo, Escenarios::utiles::abrir_socket};
-use std::{
-    io::{Read, Write},
-    net::TcpStream,
-    time::Duration,
+use crate::{
+    Dominio::{contratos::Peticion, datagrama_tcp::Extremo},
+    Escenarios::utiles::{abrir_socket, enviar_datos},
 };
+use std::{net::TcpStream, time::Duration};
 
-fn cliente(server: Extremo) -> std::io::Result<()> {
+fn cliente(server: Extremo, peticion: Peticion) -> std::io::Result<()> {
     let socket_server = format!("{}:{}", server.ip, server.puerto);
     let mut stream = TcpStream::connect(socket_server)?;
 
@@ -13,12 +12,7 @@ fn cliente(server: Extremo) -> std::io::Result<()> {
     stream.set_write_timeout(Some(Duration::from_secs(5)))?;
     stream.set_nodelay(true)?;
 
-    for _ in 0..10 {
-        stream.write_all(b"HOLAAAAA")?;
-    }
-
-    let mut respuesta = [0u8; 126];
-    stream.read(&mut respuesta)?;
+    enviar_datos(&mut stream, peticion)?;
 
     Ok(())
 }
@@ -31,9 +25,13 @@ pub fn ejecutar(server: Extremo) -> std::io::Result<()> {
         }
     });
 
-    std::thread::sleep(Duration::from_millis(20));
+    std::thread::sleep(Duration::from_millis(120));
 
-    cliente(server.clone())?;
+    let peticion = Peticion {
+        id_peticion: 32,
+        accion: crate::Dominio::contratos::TipoPeticion::ObtenerUsuario(3),
+    };
+    cliente(server, peticion)?;
 
     servidor.join().unwrap();
 
