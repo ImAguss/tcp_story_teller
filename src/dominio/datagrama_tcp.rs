@@ -42,7 +42,7 @@ pub struct CabeceraTCP {
     pub puntero_urgente: u16,
 
     pub payload: Option<Vec<u8>>,
-    pub opciones: Option<Vec<OpcionesTCP>>,
+    pub opciones: Vec<OpcionesTCP>,
     pub longitud_datos: usize,
 }
 
@@ -80,7 +80,7 @@ impl std::fmt::Display for CabeceraTCP {
         };
 
         let opciones_str = match &self.opciones {
-            Some(ops) if !ops.is_empty() => ops
+            ops if !ops.is_empty() => ops
                 .iter()
                 .map(|op| match op {
                     OpcionesTCP::Mss(m) => format!("MSS: {}", m),

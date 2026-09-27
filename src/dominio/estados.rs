@@ -213,7 +213,7 @@ impl InformeSesion {
             checksum,
             puntero_urgente,
             payload,
-            Some(opciones),
+            opciones,
             len_datos,
         );
         self.pasos.push(paso);
