@@ -6,7 +6,7 @@ use crossterm::terminal::{
 };
 use std::io::stdout;
 
-use crate::Dominio::visual::PasoTCP;
+use crate::dominio::visual::PasoTCP;
 
 pub struct HandleTerminal;
 impl Drop for HandleTerminal {

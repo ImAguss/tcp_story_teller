@@ -3,10 +3,10 @@ use std::net::IpAddr;
 use etherparse::{NetSlice, TransportSlice};
 
 #[allow(dead_code)]
-use crate::Dominio::datagrama_tcp::{Extremo, FlagsTCP};
+use crate::dominio::datagrama_tcp::{Extremo, FlagsTCP};
 use crate::{
-    Captura::errores::ErrorProcesamiento,
-    Dominio::visual::{Direccion, EtapaConexion, PasoCierre, PasoHandshake, PasoTCP},
+    captura::errores::ErrorProcesamiento,
+    dominio::visual::{Direccion, EtapaConexion, PasoCierre, PasoHandshake, PasoTCP},
 };
 
 pub struct InformeSesion {

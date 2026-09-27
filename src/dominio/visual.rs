@@ -1,4 +1,4 @@
-use crate::Dominio::datagrama_tcp::{CabeceraTCP, Extremo, FlagsTCP, OpcionesTCP};
+use crate::dominio::datagrama_tcp::{CabeceraTCP, Extremo, FlagsTCP, OpcionesTCP};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PasoHandshake {

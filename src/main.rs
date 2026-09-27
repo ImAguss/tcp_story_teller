@@ -1,12 +1,14 @@
-mod Captura;
-mod Dominio;
-mod Escenarios;
-mod Presentacion;
+#![allow(unused)]
+
+mod captura;
+mod dominio;
+mod escenarios;
+mod presentacion;
 use std::{net::Ipv4Addr, sync::mpsc, time::Duration};
 
-use crate::Escenarios::local_simple::ejecutar;
-use crate::Presentacion::presentacion::ejecutar_presentacion;
-use crate::{Captura::captura_paquetes::capturar_paquetes, Dominio::datagrama_tcp::Extremo};
+use crate::escenarios::local_simple::ejecutar;
+use crate::presentacion::presentacion::ejecutar_presentacion;
+use crate::{captura::captura_paquetes::capturar_paquetes, dominio::datagrama_tcp::Extremo};
 
 fn main() {
     let (tx, rx) = mpsc::channel();

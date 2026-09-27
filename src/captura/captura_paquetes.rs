@@ -1,7 +1,7 @@
 use pcapture::{Capture, Device};
 
-use crate::Captura::errores::ErrorCaptura;
-use crate::Dominio::estados::InformeSesion;
+use crate::captura::errores::ErrorCaptura;
+use crate::dominio::estados::InformeSesion;
 
 fn obtener_interfaz(interfaz: Option<&str>) -> Option<Device> {
     let Ok(interfaces) = Device::list() else {

@@ -1,7 +1,7 @@
-use crate::Dominio::contratos::{
+use crate::dominio::contratos::{
     DatosRespuesta, PaginaWeb, Peticion, Respuesta, TipoPeticion, Usuario,
 };
-use crate::Dominio::datagrama_tcp::Extremo;
+use crate::dominio::datagrama_tcp::Extremo;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 

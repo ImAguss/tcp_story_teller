@@ -1,6 +1,6 @@
 use crate::{
-    Dominio::{contratos::Peticion, datagrama_tcp::Extremo},
-    Escenarios::utiles::{abrir_socket, enviar_datos},
+    dominio::{contratos::Peticion, datagrama_tcp::Extremo},
+    escenarios::utiles::{abrir_socket, enviar_datos},
 };
 use std::{net::TcpStream, time::Duration};
 
@@ -29,7 +29,7 @@ pub fn ejecutar(server: Extremo) -> std::io::Result<()> {
 
     let peticion = Peticion {
         id_peticion: 32,
-        accion: crate::Dominio::contratos::TipoPeticion::ObtenerUsuario(3),
+        accion: crate::dominio::contratos::TipoPeticion::ObtenerUsuario(3),
     };
     cliente(server, peticion)?;
 
