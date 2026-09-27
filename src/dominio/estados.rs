@@ -1,12 +1,19 @@
 use std::net::IpAddr;
 
-use etherparse::{NetSlice, TransportSlice};
+use etherparse::{
+    NetSlice,
+    TcpOptionElement::{self, MaximumSegmentSize},
+    TransportSlice,
+};
 
 #[allow(dead_code)]
 use crate::dominio::datagrama_tcp::{Extremo, FlagsTCP};
 use crate::{
     captura::errores::ErrorProcesamiento,
-    dominio::visual::{Direccion, EtapaConexion, PasoCierre, PasoHandshake, PasoTCP},
+    dominio::{
+        datagrama_tcp::OpcionesTCP::{self, Mss, TamañoVentana},
+        visual::{Direccion, EtapaConexion, PasoCierre, PasoHandshake, PasoTCP},
+    },
 };
 
 pub struct InformeSesion {
@@ -171,6 +178,23 @@ impl InformeSesion {
             None
         };
         let indice = self.pasos.len() + 1;
+        let opciones: Vec<OpcionesTCP> = tcp
+            .options_iterator()
+            .into_iter()
+            .filter_map(|x| {
+                if let Some(opcion) = x.ok() {
+                    match opcion {
+                        TcpOptionElement::WindowScale(wss) => {
+                            Some(OpcionesTCP::TamañoVentana(wss))
+                        }
+                        TcpOptionElement::MaximumSegmentSize(mss) => Some(OpcionesTCP::Mss(mss)),
+                        _ => None,
+                    }
+                } else {
+                    return None;
+                }
+            })
+            .collect();
 
         let paso = PasoTCP::new(
             indice,
@@ -189,7 +213,7 @@ impl InformeSesion {
             checksum,
             puntero_urgente,
             payload,
-            None,
+            Some(opciones),
             len_datos,
         );
         self.pasos.push(paso);

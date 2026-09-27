@@ -13,7 +13,7 @@ use crate::{captura::captura_paquetes::capturar_paquetes, dominio::datagrama_tcp
 fn main() {
     let (tx, rx) = mpsc::channel();
     let _handle_captura = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(Some("lo"), 8080) {
+        let _informe = match capturar_paquetes(Some("lo"), 9421) {
             Ok(i) => tx.send(i),
             _ => panic!("Error al iniciar captura."),
         };
@@ -21,7 +21,7 @@ fn main() {
 
     if let Err(_) = ejecutar(Extremo {
         ip: std::net::IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        puerto: 8080,
+        puerto: 9421,
     }) {
         return;
     }
