@@ -46,13 +46,13 @@ impl EtapaConexion {
     pub fn titulo(&self) -> &'static str {
         match self {
             EtapaConexion::Handshake(PasoHandshake::Syn) => {
-                "Establecimiento (1/3): Solicitud de Inicio de Conexión [SYN]"
+                "Establecimiento (1/3): Solicitud de Inicio [SYN]"
             }
             EtapaConexion::Handshake(PasoHandshake::SynAck) => {
-                "Establecimiento (2/3): Acuse de Recibo y Sincronización Servidor [SYN-ACK]"
+                "Establecimiento (2/3): Acuse y Sincronización Servidor [SYN-ACK]"
             }
             EtapaConexion::Handshake(PasoHandshake::Ack) => {
-                "Establecimiento (3/3): Confirmación Final y Conexión Establecida [ACK]"
+                "Establecimiento (3/3): Conexión Establecida [ACK]"
             }
             EtapaConexion::TransferenciaDatos { .. } => {
                 "Transferencia de Datos: Transmisión de Datos de Aplicación"
@@ -221,23 +221,82 @@ impl PasoTCP {
             Direccion::ServidorCliente => "Cliente <────────── Servidor",
         };
 
-        let encabezado = format!(
-            "══════════════════════════════════════════════════════════════════════════\n\
-             [ Paso #{} ]  (+{:.3}s)   {}\n\
-             Etapa: {}\n\
-            ══════════════════════════════════════════════════════════════════════════",
+        let pad_banner = |content: &str| -> String {
+            let char_count = content.chars().count();
+            if char_count > 74 {
+                let trunc: String = content.chars().take(71).collect();
+                format!("║  {}...  ║", trunc)
+            } else {
+                let pad = 74 - char_count;
+                format!("║  {}{:pad$}  ║", content, "", pad = pad)
+            }
+        };
+
+        let izq = format!(
+            "PASO #{:<2}  (+{:.3}s)",
             self.indice,
-            self.tiempo_relativo.as_secs_f64(),
-            flecha,
-            self.etapa.titulo()
+            self.tiempo_relativo.as_secs_f64()
+        );
+        let der = flecha;
+        let espacios = 74usize.saturating_sub(izq.chars().count() + der.chars().count());
+        let linea_1 = format!("{}{:espacios$}{}", izq, "", der, espacios = espacios);
+        let linea_2 = format!("Etapa: {}", self.etapa.titulo());
+
+        let banner = format!(
+            "╔{}╗\n{}\n{}\n╚{}╝",
+            "═".repeat(78),
+            pad_banner(&linea_1),
+            pad_banner(&linea_2),
+            "═".repeat(78)
         );
 
-        format!(
-            "{}\n\n{}\n\nExplicación didáctica:\n{}\n",
-            encabezado,
-            self.cabecera,
-            self.explicacion()
-        )
+        let pad_exp = |content: &str| -> String {
+            let char_count = content.chars().count();
+            let pad = 74usize.saturating_sub(char_count);
+            format!("│  {}{:pad$}  │", content, "", pad = pad)
+        };
+
+        let empty_line = format!("│{:78}│", "");
+        let mut caja_explicacion = String::new();
+        caja_explicacion.push_str(&format!(
+            "┌── [ EXPLICACIÓN DIDÁCTICA ] {}┐\n",
+            "─".repeat(49)
+        ));
+        caja_explicacion.push_str(&format!("{}\n", empty_line));
+
+        let texto_explicacion = self.explicacion();
+        for parrafo in texto_explicacion.lines() {
+            let palabras: Vec<&str> = parrafo.split_whitespace().collect();
+            if palabras.is_empty() {
+                continue;
+            }
+            let mut linea_actual = String::new();
+            for palabra in palabras {
+                if linea_actual.is_empty() {
+                    linea_actual.push_str(palabra);
+                } else if linea_actual.chars().count() + 1 + palabra.chars().count() <= 74 {
+                    linea_actual.push(' ');
+                    linea_actual.push_str(palabra);
+                } else {
+                    caja_explicacion.push_str(&format!("{}\n", pad_exp(&linea_actual)));
+                    linea_actual = palabra.to_string();
+                }
+            }
+            if !linea_actual.is_empty() {
+                caja_explicacion.push_str(&format!("{}\n", pad_exp(&linea_actual)));
+            }
+        }
+
+        caja_explicacion.push_str(&format!("{}\n", empty_line));
+        caja_explicacion.push_str(&format!("└{}┘", "─".repeat(78)));
+
+        format!("{}\n\n{}\n\n{}", banner, self.cabecera, caja_explicacion)
+    }
+
+    pub fn dimensiones(&self) -> (u16, u16) {
+        let bloque = self.bloque_completo();
+        let alto = bloque.lines().count();
+        (80, alto as u16)
     }
 
     pub fn new(

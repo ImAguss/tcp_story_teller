@@ -23,46 +23,32 @@ pub fn ejecutar_presentacion(diapositivas: Vec<PasoTCP>) -> std::io::Result<()> 
 
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen, cursor::Hide)?;
-    execute!(stdout(), Clear(ClearType::All), MoveTo(0, 0))?;
-    println!(
-        "{}",
-        diapositivas[indice].bloque_completo().replace('\n', "\r\n")
-    );
-    while indice < max_len {
+    loop {
+        let (ancho_terminal, alto_terminal) = crossterm::terminal::size()?;
+        let (ancho_bloque, alto_bloque) = diapositivas[indice].dimensiones();
+        let x = (ancho_terminal.saturating_sub(ancho_bloque) / 2);
+        let y = (alto_terminal.saturating_sub(alto_bloque) / 2);
+        execute!(stdout(), Clear(ClearType::All))?;
+
+        for (i, linea) in diapositivas[indice].bloque_completo().lines().enumerate() {
+            execute!(stdout(), MoveTo(x, y + i as u16))?;
+            print!("{}", linea);
+        }
+
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 match key.code {
                     KeyCode::Left => {
                         if indice > 0 {
-                            execute!(stdout(), Clear(ClearType::All), MoveTo(0, 0))?;
-                            println!(
-                                "{}",
-                                diapositivas[indice - 1]
-                                    .bloque_completo()
-                                    .replace('\n', "\r\n")
-                            );
-                            indice -= 1;
+                            indice -= 1
                         }
                     }
                     KeyCode::Right => {
-                        execute!(stdout(), Clear(ClearType::All), MoveTo(0, 0))?;
-                        println!(
-                            "{}",
-                            diapositivas[indice + 1]
-                                .bloque_completo()
-                                .replace('\n', "\r\n")
-                        );
-                        indice += 1;
-                    }
-                    KeyCode::Enter => {
-                        execute!(stdout(), Clear(ClearType::All), MoveTo(0, 0))?;
-                        println!(
-                            "{}",
-                            diapositivas[indice + 1]
-                                .bloque_completo()
-                                .replace('\n', "\r\n")
-                        );
-                        indice += 1;
+                        if indice > max_len {
+                            break;
+                        } else {
+                            indice += 1;
+                        }
                     }
                     KeyCode::Char('q') => {
                         break;
