@@ -1,19 +1,26 @@
 use crate::{
-    dominio::{contratos::Peticion, datagrama_tcp::Extremo},
-    escenarios::utiles::{abrir_socket, enviar_datos},
+    dominio::{contratos::Peticion, contratos::TipoPeticion, datagrama_tcp::Extremo},
+    escenarios::utiles::{abrir_socket, crear_stream},
 };
-use std::{net::TcpStream, time::Duration};
+use std::{
+    io::{Read, Write},
+    net::TcpStream,
+    time::Duration,
+};
 
-fn cliente(server: Extremo, peticion: Peticion) -> std::io::Result<()> {
+fn cliente(server: Extremo, peticiones: Vec<Peticion>) -> std::io::Result<()> {
     let socket_server = format!("{}:{}", server.ip, server.puerto);
-    let mut stream = TcpStream::connect(socket_server)?;
+    let mut buffer = [0u8; 2048];
+    let mut stream = crear_stream(socket_server)?;
 
-    stream.set_read_timeout(Some(Duration::from_secs(5)))?;
-    stream.set_write_timeout(Some(Duration::from_secs(5)))?;
-    stream.set_nodelay(true)?;
-
-    enviar_datos(&mut stream, peticion)?;
-
+    for peticion in peticiones {
+        let peticion_parseada = serde_json::to_vec(&peticion);
+        if let Ok(bytes) = peticion_parseada {
+            stream.write_all(&bytes)?;
+            stream.flush()?;
+        }
+    }
+    let _ = stream.read(&mut buffer)?;
     Ok(())
 }
 
@@ -27,11 +34,21 @@ pub fn ejecutar(server: Extremo) -> std::io::Result<()> {
 
     std::thread::sleep(Duration::from_millis(120));
 
-    let peticion = Peticion {
+    let peticion1 = Peticion {
         id_peticion: 32,
-        accion: crate::dominio::contratos::TipoPeticion::ObtenerUsuario(3),
+        accion: TipoPeticion::ObtenerUsuario(3),
     };
-    cliente(server, peticion)?;
+    let peticion2 = Peticion {
+        id_peticion: 32,
+        accion: TipoPeticion::ObtenerTodosLosUsuarios,
+    };
+    let peticion3 = Peticion {
+        id_peticion: 32,
+        accion: TipoPeticion::CargarPaginaWeb("/index".to_string()),
+    };
+    let peticiones = vec![peticion1, peticion2, peticion3];
+
+    cliente(server, peticiones)?;
 
     servidor.join().unwrap();
 
