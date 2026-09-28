@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use crate::captura::captura_paquetes::capturar_paquetes;
 use crate::captura::errores::ErrorCaptura;
+use crate::dominio::contratos::{Peticion, TipoPeticion};
 pub use crate::dominio::datagrama_tcp::Extremo;
 use crate::dominio::estados::InformeSesion;
 pub use crate::dominio::visual::PasoTCP;
@@ -18,16 +19,29 @@ use crate::escenarios::utiles::abrir_socket;
 use crate::presentacion::presentacion::ejecutar_presentacion;
 
 pub fn escucha_pasiva(
-    puerto: u16,
+    pc_local: Extremo,
     interfaz: Option<String>,
 ) -> Result<InformeSesion, ErrorCaptura> {
-    println!("Escuchando en el puerto {}...", puerto);
-    let informe = match capturar_paquetes(interfaz, puerto) {
-        Ok(i) => i,
-        Err(_) => return Err(ErrorCaptura::ErrorCapturador),
+    let (tx, rx) = mpsc::channel();
+    let _handlesniffer = std::thread::spawn(move || {
+        let _informe = match capturar_paquetes(interfaz, pc_local.puerto) {
+            Ok(i) => tx.send(i),
+            Err(_) => panic!("Error al capturar paquetes."),
+        };
+    });
+    let _handlebind = std::thread::spawn(|| {
+        if let Err(e) = abrir_socket(pc_local) {
+            eprintln!("{}", e);
+        }
+    });
+    let informe = match rx.recv() {
+        Ok(i) => Ok(i),
+        Err(_) => Err(ErrorCaptura::ErrorCapturador),
     };
 
-    Ok(informe)
+    _handlesniffer.join();
+    _handlebind.join();
+    return informe;
 }
 
 pub fn ejecutar_escenario_web_simple(
