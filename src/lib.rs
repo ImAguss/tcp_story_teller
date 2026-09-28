@@ -12,7 +12,9 @@ use crate::captura::errores::ErrorCaptura;
 pub use crate::dominio::datagrama_tcp::Extremo;
 use crate::dominio::estados::InformeSesion;
 pub use crate::dominio::visual::PasoTCP;
-use crate::escenarios::peticiones_http::{enviar_datos_http_rafaga, enviar_datos_http_simple};
+use crate::escenarios::peticiones_http::{
+    enviar_datos_http_pesado, enviar_datos_http_rafaga, enviar_datos_http_simple,
+};
 use crate::escenarios::peticiones_locales::ejecutar_localmente;
 use crate::escenarios::utiles::abrir_socket;
 use crate::presentacion::presentacion::ejecutar_presentacion;
@@ -61,6 +63,34 @@ pub fn ejecutar_escenario_web_simple(
 
     std::thread::sleep(Duration::from_millis(500));
     if let Err(e) = enviar_datos_http_simple() {
+        eprintln!("Error al enviar peticion HTTP: {}", e);
+    }
+
+    let informe = match rx.recv() {
+        Ok(i) => Ok(i),
+        Err(_) => Err(ErrorCaptura::ErrorCapturador),
+    };
+
+    _handlesniffer
+        .join()
+        .map_err(|_| ErrorCaptura::SalidaInesperada)?;
+    return informe;
+}
+
+pub fn ejecutar_escenario_web_pesado(
+    interfaz: Option<String>,
+) -> Result<InformeSesion, ErrorCaptura> {
+    let (tx, rx) = mpsc::channel();
+
+    let _handlesniffer = std::thread::spawn(move || {
+        let _informe = match capturar_paquetes(interfaz, 80) {
+            Ok(i) => tx.send(i),
+            Err(_) => panic!("Error al capturar paquetes."),
+        };
+    });
+
+    std::thread::sleep(Duration::from_millis(500));
+    if let Err(e) = enviar_datos_http_pesado() {
         eprintln!("Error al enviar peticion HTTP: {}", e);
     }
 
