@@ -9,7 +9,6 @@ use std::time::Duration;
 
 use crate::captura::captura_paquetes::capturar_paquetes;
 use crate::captura::errores::ErrorCaptura;
-use crate::dominio::contratos::{Peticion, TipoPeticion};
 pub use crate::dominio::datagrama_tcp::Extremo;
 use crate::dominio::estados::InformeSesion;
 pub use crate::dominio::visual::PasoTCP;
@@ -39,8 +38,12 @@ pub fn escucha_pasiva(
         Err(_) => Err(ErrorCaptura::ErrorCapturador),
     };
 
-    _handlesniffer.join();
-    _handlebind.join();
+    _handlesniffer
+        .join()
+        .map_err(|_| ErrorCaptura::SalidaInesperada)?;
+    _handlebind
+        .join()
+        .map_err(|_| ErrorCaptura::SalidaInesperada)?;
     return informe;
 }
 
@@ -66,7 +69,9 @@ pub fn ejecutar_escenario_web_simple(
         Err(_) => Err(ErrorCaptura::ErrorCapturador),
     };
 
-    _handlesniffer.join();
+    _handlesniffer
+        .join()
+        .map_err(|_| ErrorCaptura::SalidaInesperada)?;
     return informe;
 }
 
@@ -92,7 +97,9 @@ pub fn ejecutar_escenario_web_rafaga(
         Err(_) => Err(ErrorCaptura::ErrorCapturador),
     };
 
-    _handlesniffer.join();
+    _handlesniffer
+        .join()
+        .map_err(|_| ErrorCaptura::SalidaInesperada)?;
     return informe;
 }
 
@@ -113,11 +120,12 @@ pub fn enviar_datos(
         return Err(ErrorCaptura::Error);
     }
 
-    match rx.recv() {
-        Ok(i) => return Ok(i),
-        Err(_) => return Err(ErrorCaptura::ErrorCapturador),
-    };
-    _handlesniffer.join();
+    let informe_generado = rx.recv().map_err(|_| ErrorCaptura::ErrorCapturador)?;
+
+    _handlesniffer
+        .join()
+        .map_err(|_| ErrorCaptura::SalidaInesperada)?;
+    Ok(informe_generado)
 }
 
 pub fn escenario_local() -> Result<InformeSesion, ErrorCaptura> {
@@ -138,11 +146,12 @@ pub fn escenario_local() -> Result<InformeSesion, ErrorCaptura> {
         return Err(ErrorCaptura::Error);
     }
 
-    match rx.recv() {
-        Ok(i) => return Ok(i),
-        Err(_) => return Err(ErrorCaptura::ErrorCapturador),
-    };
-    _handlesniffer.join();
+    let informe_generado = rx.recv().map_err(|_| ErrorCaptura::ErrorCapturador)?;
+
+    _handlesniffer
+        .join()
+        .map_err(|_| ErrorCaptura::SalidaInesperada)?;
+    Ok(informe_generado)
 }
 
 pub fn renderizar_diapositivas(diapositivas: Vec<PasoTCP>) -> std::io::Result<()> {
