@@ -88,7 +88,7 @@ pub fn enviar_datos(
 ) -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(interfaz, 80) {
+        let _informe = match capturar_paquetes(interfaz, otra_pc.puerto) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };
