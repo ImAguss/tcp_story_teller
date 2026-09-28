@@ -1,118 +1,73 @@
-# Roadmap de TcpStoryTeller
+# Roadmap de tcp_story_teller
 
-Documento de seguimiento del estado actual del proyecto, arquitectura completada y tareas pendientes para llevar **TcpStoryTeller** a su versión final.
+## Completado
 
----
-
-## 📌 Estado Actual del Proyecto (Completado)
-
-El núcleo del flujo de captura, procesamiento y visualización se encuentra operativo y validado en entorno local y LAN:
-
-- [x] **Captura de Red (`pcapture`)**: Ingesta de paquetes mediante sockets crudos (`AF_PACKET`) con soporte para filtros BPF automáticos (`tcp port X`) y detección de interfaces activas.
-- [x] **Parseo Zero-Copy (`etherparse`)**: Decodificación de capas Ethernet, IPv4/IPv6 y cabeceras TCP con extracción de flags de control (`SYN`, `ACK`, `FIN`, `RST`, `PSH`, `URG`).
-- [x] **Tracking de Sesión e ISN Relativos**:
-  - Detección automática de extremos (Cliente vs. Servidor).
-  - Seguimiento del ISN (*Initial Sequence Number*) para calcular números de secuencia (`seq_rel`) y acuse de recibo (`ack_rel`) normalizados desde 0.
-- [x] **Máquina de Deducción de Etapas (`deducir_etapa`)**:
+- [x] **Captura de Red**: Ingesta de paquetes crudos con BPF (`pcapture`).
+- [x] **Parseo Zero-Copy**: Decodificación de capas Ethernet, IPv4/IPv6 y TCP (`etherparse`).
+- [x] **Tracking e ISN Relativos**: Normalización de secuencia y acuse de recibo desde 0 (`seq_rel`, `ack_rel`).
+- [x] **Deducción de Estados FSM**:
   - Handshake de 3 vías (`SYN`, `SYN-ACK`, `ACK`).
   - Transferencia de datos con flags `PSH`.
-  - Cierre ordenado (`FIN`, `ACK-FIN`, `ACK`) y cierres abruptos (`RST`).
-  - Detección preliminar de ACKs acumulativos, duplicados y sondas de ventana.
-- [x] **Visor Interactivo en Terminal (`crossterm`)**:
-  - Renderizado en pantalla alterna (*Alternate Screen*) con ocultamiento de cursor.
-  - Modo *Raw* para captura inmediata de teclado sin esperar `<Enter>`.
-  - Limpieza segura de terminal garantizada mediante RAII (*Drop Guard* en `HandleTerminal`).
-  - Navegación bidireccional de diapositivas paso a paso (flechas `←` / `→`, `Enter`, tecla `q` para salir).
-  - Formateo detallado de diagramas de caja ANSI con inspección de payloads (UTF-8, JSON pretty-printed y vistas hexadecimales).
-- [x] **Configuración de Lints**:
-  - Supresión de ruidos de desarrollo (`unused`, `nonstandard_style`) configurados a nivel de `Cargo.toml` y `src/main.rs`.
+  - Cierre ordenado (`FIN-ACK`) y aborto inmediato (`RST`).
+- [x] **Opciones TCP y Factor de Escala**: Extracción de `MSS` y factor de escala de ventana `WScale` (RFC 7323) con preservación del dato crudo y multiplicador dedicado.
+- [x] **Formateo Dinámico de Flags**: Soporte para combinaciones arbitrarias de banderas activas.
+- [x] **TUI Interactiva (`crossterm`)**:
+  - Consola modular en 3 paneles ANSI (Flujo, Inspección de cabecera y Explicación didáctica).
+  - Centrado dinámico sensible al tamaño de terminal.
+  - Navegación bidireccional (`←`, `→`, `Enter`, `q`).
+  - Limpieza segura de terminal garantizada por RAII (`Drop`).
+- [x] **CLI con `clap`**: Subcomandos `escuchar`, `conectar`, `web` y `localmente`.
+- [x] **Escenarios Operativos**:
+  - `localmente`: Transacción atómica offline sin dependencias externas.
+  - `web`: Peticiones contra WAN real (`httpbin.org`), modo simple, pesado (autotuning de ventana) y ráfaga con pipelining.
+  - P2P en red local: Comunicación cliente-servidor validada entre dos computadoras físicas.
+- [x] **Optimización de Compilación**: Perfil release con LTO y strip habilitados (binario de 1.1 MB).
+- [x] **Manejo de Errores Idiomático**: Propagación limpia con `?` y eliminación de panics/unwraps en captura e inicialización.
 
 ---
 
-## 🚀 Tareas Pendientes
+## Próximas Tareas
 
-```
-TcpStoryTeller/
-├── 1. Opciones TCP & Ventana Escalada (Alta prioridad)
-├── 2. Parametrización CLI con `clap`
-├── 3. Escenarios Faltantes & Escenario Personalizado
-├── 4. Soporte P2P / Modo Dos Nodos
-└── 5. Ajustes de Robustez y UX
-```
+### 1. Nuevos Protocolos de Red y Transporte
 
----
+- [ ] **UDP (User Datagram Protocol)**:
+  - Ingesta y parseo de datagramas no orientados a conexión.
+  - Inspección de cabecera de 8 bytes (puerto origen, puerto destino, longitud y checksum).
+  - Demostración de ausencia de estados (sin handshake ni acuses de recibo).
+- [ ] **DNS (Domain Name System, RFC 1035)**:
+  - Captura de consultas y respuestas sobre UDP (puerto 53).
+  - Desglose de flags: `QR` (Query/Response), `AA` (Authoritative), `RD` (Recursion Desired), `RA` (Recursion Available).
+  - Parseo de secciones `Questions`, `Answers` (registros A, AAAA, CNAME, MX) y punteros de compresión de nombres (`0xc0..`).
+- [ ] **TLS 1.3 (Transport Layer Security)**:
+  - Inspección del establecimiento de canal seguro sobre TCP (puerto 443).
+  - Desglose de mensajes en texto claro del handshake: `ClientHello` (ciphersuites, extensiones SNI y KeyShare) y `ServerHello`.
+  - Visualización del punto de transición a registros cifrados (`Application Data`).
+- [ ] **ICMP e ICMPv6 (Internet Control Message Protocol)**:
+  - Soporte de datagramas encapsulados directamente en IP (sin capa de transporte).
+  - `Echo Request` y `Echo Reply` (mecanismo básico de ping).
+  - `Time Exceeded` (Type 11): Demostración didáctica del funcionamiento de traceroute mediante manipulación del TTL.
+  - `Destination Unreachable` / `Fragmentation Needed` (Type 3, Code 4): Demostración de Path MTU Discovery (PMTUD) ante datagramas con flag `DF` que exceden el MTU.
+- [ ] **DHCP (Dynamic Host Configuration Protocol)**:
+  - Seguimiento del ciclo DORA completo en broadcast sobre UDP (puertos 67/68): `Discover`, `Offer`, `Request` y `Acknowledge`.
+  - Inspección de opciones de configuración de red entregadas al host (IP, máscara de subred, gateway y DNS).
+- [ ] **ARP (Address Resolution Protocol)**:
+  - Resolución de direcciones entre Capa 3 (IP) y Capa 2 (direcciones físicas MAC Ethernet).
+  - Inspección de tramas de petición en broadcast (`who-has`) y respuesta unicast (`is-at`).
 
-### 1. Opciones TCP y Cálculo de Ventana Escalada (WScale & MSS)
-> **Objetivo:** Resolver el parseo de opciones de cabecera y calcular con precisión matemática el tamaño real del buffer de recepción (`rwnd`).
+### 2. Funcionalidades de Alto Nivel
 
-- [ ] **Parseo de Opciones en `estados.rs` / `datagrama_tcp.rs`**:
-  - Actualmente `PasoTCP::new` recibe `None` para las opciones TCP.
-  - Integrar el iterador de opciones expuesto por `etherparse` (`tcp.options()` o slice de cabecera).
-  - Modelar y extraer:
-    - **MSS (*Maximum Segment Size*)**: Anunciado en `SYN` / `SYN-ACK`.
-    - **WScale (*Window Scale*, RFC 7323)**: Factor de desplazamiento de ventana ($2^{\text{scale}}$).
-    - **SACK Permitted**: Soporte para acuses de recibo selectivos.
-    - **Timestamps** (`TSval` / `TSecr`): Marcas de tiempo de ida y vuelta.
-    - **NOP / EOL**: Padding de cabecera.
-- [ ] **Cálculo de Ventana Real**:
-  - Almacenar los factores de escala negociados en el handshake (`wscale_cliente` y `wscale_servidor`) dentro de `InformeSesion`.
-  - Multiplicar la ventana cruda del header por el factor correspondiente:
-    $$\text{rwnd\_real} = \text{window} \times 2^{\text{wscale}}$$
-  - Mostrar en la TUI tanto el valor crudo como el valor escalado real (evitando que la ventana figure de 64 bytes durante la transferencia de datos).
+- [ ] **Exportación e Importación de archivos PCAP / PCAPNG**:
+  - Apertura de archivos de captura generados externamente con Wireshark o tcpdump (`tcp_story_teller abrir captura.pcap`) para reproducir sesiones paso a paso en la TUI.
+  - Exportación de la sesión analizada a formato `.pcap` / `.pcapng` para persistencia y uso docente.
+- [ ] **Refactor de Errores con `thiserror`**:
+  - Definición de tipos de error estructurados y fuertemente tipados en `captura::errores`.
+  - Reporte descriptivo y contextualizado en `main.rs`, eliminando descarte silencioso de fallos.
 
----
+### 3. Inyección de Anomalías (Modo Caos y Diagnóstico)
 
-### 2. Parametrización de Línea de Comandos (`clap`)
-> **Objetivo:** Eliminar variables hardcodeadas en `main.rs` para permitir ejecución flexible en cualquier red o escenario.
-
-- [ ] **Estructura CLI Principal**:
-  - Flags globales:
-    - `-i, --interfaz <IFACE>`: Especificar interfaz de red (`lo`, `wlan0`, `eth0`), con fallback a la primera interfaz activa no-loopback.
-    - `-p, --puerto <PORT>`: Puerto de escucha/filtrado (default: `8080`).
-    - `-t, --timeout <SEGUNDOS>`: Tiempo de inactividad antes de finalizar la captura (default: 6s).
-- [ ] **Subcomandos de Ejecución**:
-  - `tcpteller run <escenario>`: Ejecuta y visualiza un escenario automatizado.
-  - `tcpteller listen`: **Modo Pasivo (Sniffer Puro)**. No crea conexiones ni abre sockets; simplemente escucha en la interfaz seleccionada y muestra el flujo interactivo de cualquier tráfico TCP coincidente.
-
----
-
-### 3. Implementación de Escenarios de Tráfico
-> **Objetivo:** Poblar los módulos en `src/escenarios/` para ilustrar diferentes comportamientos del protocolo TCP.
-
-- [ ] **`rechazo_conexion.rs`**:
-  - Cliente intentando conectar a un puerto local o remoto sin servicio a la escucha.
-  - Demostración de recepción del paquete de aborto inmediato (`RST` / `ACK-RST`).
-- [ ] **`peticion_http.rs`**:
-  - Handshake de 3 vías.
-  - Envío de request `GET / HTTP/1.1\r\nHost: ...\r\n\r\n` con flag `PSH`.
-  - Recepción de respuesta HTTP `200 OK` con cabeceras y cuerpo HTML/JSON.
-  - Cierre ordenado en 4 pasos (`FIN-ACK`).
-- [ ] **`local_rafaga.rs`**:
-  - Envío de múltiples segmentos de datos consecutivos sin esperar ACKs individuales inmediatos.
-  - Observación del comportamiento de ACKs acumulativos (`ack_acumulativo`) y reducción progresiva de la ventana de recepción.
-- [ ] **`personalizado.rs` (Custom)**:
-  - Escenario configurable por parámetros:
-    - IP y puerto destino arbitrarios.
-    - Tamaño del payload en bytes.
-    - Delay/pausa configurable entre paquetes (para ver tiempos relativos).
-    - Cierre forzado mediante `RST` voluntario (`SO_LINGER = 0`) o cierre estándar `FIN`.
-
----
-
-### 4. Soporte P2P y Entornos en Red (Dos Máquinas)
-> **Objetivo:** Permitir que dos dispositivos distintos en una red local (LAN o Wi-Fi) participen en la captura y visualización.
-
-- [ ] **Modo Servidor Independiente (`tcpteller server`)**:
-  - Abre un `TcpListener` en `0.0.0.0:<puerto>`, acepta un socket y responde con un mensaje de bienvenida o eco.
-- [ ] **Modo Cliente Independiente (`tcpteller client`)**:
-  - Conecta mediante `TcpStream` a la IP de destino (`--target <IP:PORT>`), envía datos y cierra la conexión.
-- [ ] **Filtro BPF Cruzado en LAN**:
-  - Ajustar el filtro BPF de `pcapture` para aislar el flujo exacto entre los dos pares: `tcp and (host IP_A and host IP_B) and port P`.
-
----
-
-### 5. Robustez y Pequeños Ajustes
-- [ ] **Control de Límites en el Visor (`presentacion.rs`)**:
-  - Agregar guarda de rango (`if indice + 1 < diapositivas.len()`) en los eventos de tecla `Right` y `Enter` para prevenir posibles pánicos por índice fuera de límites en la última diapositiva.
-- [ ] **Exportación / Guardado de Informes**:
-  - Opcional: Flag `--export <archivo.json>` para persistir la traza de la sesión analizada para uso posterior o docencia.
+- [ ] **Retransmisión Rápida Forzada**:
+  - Simulación de pérdida deliberada de un segmento de datos para forzar la llegada de 3 ACKs duplicados y verificar el disparo inmediato de retransmisión rápida.
+- [ ] **Corrupción de Checksum**:
+  - Inyección de bytes corruptos en el campo de checksum para evidenciar el descarte silencioso en el kernel del receptor.
+- [ ] **Entrega Fuera de Orden (Out-of-Order Delivery)**:
+  - Alteración deliberada del orden de los paquetes para observar cómo el receptor almacena en buffer intermedio y solicita los segmentos faltantes mediante ACKs acumulativos selectivos.
