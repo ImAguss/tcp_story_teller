@@ -7,7 +7,7 @@ use std::net::{TcpListener, TcpStream};
 use std::time::Duration;
 
 pub fn crear_stream(socket: String) -> std::io::Result<TcpStream> {
-    let mut stream = TcpStream::connect(socket)?;
+    let stream = TcpStream::connect(socket)?;
 
     stream.set_read_timeout(Some(Duration::from_secs(20)))?;
     stream.set_write_timeout(Some(Duration::from_secs(20)))?;

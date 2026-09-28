@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use etherparse::{
     NetSlice,
-    TcpOptionElement::{self, MaximumSegmentSize},
+    TcpOptionElement::{self},
     TransportSlice,
 };
 
@@ -11,7 +11,7 @@ use crate::dominio::datagrama_tcp::{Extremo, FlagsTCP};
 use crate::{
     captura::errores::ErrorProcesamiento,
     dominio::{
-        datagrama_tcp::OpcionesTCP::{self, Mss, TamañoVentana},
+        datagrama_tcp::OpcionesTCP::{self},
         visual::{Direccion, EtapaConexion, PasoCierre, PasoHandshake, PasoTCP},
     },
 };
