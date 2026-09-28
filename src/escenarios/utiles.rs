@@ -99,14 +99,12 @@ pub fn abrir_socket(socket: Extremo) -> std::io::Result<()> {
 
     println!("Escuchando en {}", listener.local_addr()?);
 
-    for conexion in listener.incoming() {
+    for conexion in listener.incoming().take(1) {
         match conexion {
             Ok(mut stream) => {
-                std::thread::spawn(move || {
-                    if let Err(e) = leer_buffer(&mut stream) {
-                        eprintln!("Error en cliente {}", e);
-                    }
-                });
+                if let Err(e) = leer_buffer(&mut stream) {
+                    eprintln!("Error en cliente {}", e);
+                }
             }
             Err(e) => eprintln!("Error al recibir la conexion {}", e),
         };
