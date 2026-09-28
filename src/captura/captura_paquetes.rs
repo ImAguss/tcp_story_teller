@@ -25,15 +25,17 @@ pub fn capturar_paquetes(
     interfaz: Option<String>,
     puerto: u16,
 ) -> Result<InformeSesion, ErrorCaptura> {
-    let interfaz = obtener_interfaz(interfaz).expect("Error al obtener interfaz activa.");
-    let mut capturador = Capture::new(&interfaz.0.name).unwrap();
+    let interfaz = obtener_interfaz(interfaz).ok_or(ErrorCaptura::ErrorInterfaz)?;
+    let mut capturador =
+        Capture::new(&interfaz.0.name).map_err(|_| ErrorCaptura::ErrorCapturador)?;
 
     let filtro = format!("tcp port {}", puerto);
-    capturador.set_filter(filtro.as_str()).unwrap();
+    capturador
+        .set_filter(filtro.as_str())
+        .map_err(|_| ErrorCaptura::ErrorCapturador)?;
     capturador.set_timeout(50f32);
 
     let mut informe = InformeSesion::new();
-    let mut indice: usize = 0;
 
     let mut tiempo_ultimo_paquete = std::time::Instant::now();
     let tiempo_inactividad = std::time::Duration::from_secs(6);
