@@ -109,7 +109,7 @@ En Windows, el sistema operativo no expone sockets crudos directamente para capt
 3. Abrir **PowerShell** o **Windows Terminal** con privilegios de **Administrador**.
 4. Ejecutar el binario compilado:
    ```powershell
-   .\target\release\tcp_story_teller.exe localmente
+   .\target\release\tcp_story_teller.exe web
    ```
 
 ---
