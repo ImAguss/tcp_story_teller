@@ -3,18 +3,6 @@
 version = 4
 
 [[package]]
-name = "TcpStoryTeller"
-version = "0.1.0"
-dependencies = [
- "clap",
- "crossterm",
- "etherparse",
- "pcapture",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -955,6 +943,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tcp_story_teller"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "crossterm",
+ "etherparse",
+ "pcapture",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
