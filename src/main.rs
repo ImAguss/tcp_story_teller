@@ -1,35 +1,101 @@
-#![allow(unused)]
+use std::net::{IpAddr, Ipv4Addr};
 
-mod captura;
-mod dominio;
-mod escenarios;
-mod presentacion;
-use std::{net::Ipv4Addr, sync::mpsc, time::Duration};
+use TcpStoryTeller::{
+    Extremo, PasoTCP, ejecutar_escenario_web_rafaga, ejecutar_escenario_web_simple, escenario_local,
+};
+use TcpStoryTeller::{enviar_datos, escucha_pasiva, renderizar_diapositivas};
+use clap::{Parser, Subcommand};
 
-use crate::escenarios::peticiones_http::enviar_datos_http;
-use crate::escenarios::peticiones_locales::ejecutar;
-use crate::presentacion::presentacion::ejecutar_presentacion;
-use crate::{captura::captura_paquetes::capturar_paquetes, dominio::datagrama_tcp::Extremo};
+#[derive(Parser, Debug)]
+#[command(
+    name = "TcpStoryTeller",
+    author = "ImAguss <samperagustin19@gmail.com>",
+    version,
+    about = "Analizador de paquetes interactivo del protocolo TCP.",
+    long_about = None
+)]
+struct CLI {
+    #[command(subcommand)]
+    comando: Comando,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+enum Comando {
+    Escuchar {
+        #[arg(short, long, default_value_t = 4000)]
+        puerto: u16,
+        #[arg(short, long)]
+        interfaz: Option<String>,
+    },
+
+    Conectar {
+        #[arg(short, long)]
+        ip: IpAddr,
+        #[arg(short, long, default_value_t = 4000)]
+        puerto: u16,
+        #[arg(short, long)]
+        interfaz: Option<String>,
+    },
+
+    Web {
+        #[arg(short, long)]
+        simple: bool,
+        #[arg(short, long)]
+        verbose: bool,
+        #[arg(short, long)]
+        interfaz: Option<String>,
+    },
+    Localmente,
+}
 
 fn main() {
-    let (tx, rx) = mpsc::channel();
-    let _handle_captura = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(Some("enp4s0"), 80) {
-            Ok(i) => tx.send(i),
-            _ => panic!("Error al iniciar captura."),
-        };
-    });
+    let cli = CLI::parse();
 
-    if let Err(e) = enviar_datos_http() {
-        eprintln!("Error aca: {}", e);
-    };
-
-    match rx.recv() {
-        Ok(informe) => {
-            if let Err(e) = ejecutar_presentacion(informe.pasos) {
-                eprintln!("Error al ejecutar presentacion: {}", e);
+    let diapositivas: Option<Vec<PasoTCP>> = match cli.comando {
+        Comando::Escuchar { puerto, interfaz } => match escucha_pasiva(puerto, interfaz) {
+            Ok(d) => Some(d.pasos),
+            Err(_) => None,
+        },
+        Comando::Conectar {
+            ip,
+            puerto,
+            interfaz,
+        } => {
+            let otra_pc = Extremo { ip, puerto };
+            match enviar_datos(otra_pc, interfaz) {
+                Ok(d) => Some(d.pasos),
+                Err(_) => None,
             }
         }
-        Err(_) => eprintln!("Error en Hilo"),
+        Comando::Web {
+            simple,
+            verbose,
+            interfaz,
+        } => {
+            let diapositivas = if verbose {
+                match ejecutar_escenario_web_rafaga(interfaz) {
+                    Ok(d) => Some(d.pasos),
+                    Err(_) => None,
+                }
+            } else {
+                match ejecutar_escenario_web_simple(interfaz) {
+                    Ok(d) => Some(d.pasos),
+                    Err(_) => None,
+                }
+            };
+            diapositivas
+        }
+        Comando::Localmente => match escenario_local() {
+            Ok(d) => Some(d.pasos),
+            Err(_) => None,
+        },
+    };
+
+    if let Some(diapositivas) = diapositivas {
+        if let Err(e) = renderizar_diapositivas(diapositivas) {
+            eprintln!("Error al renderizar las diapositivas: {}", e);
+        }
+    } else {
+        eprintln!("No se pudieron extraer diapositivas.")
     }
 }
