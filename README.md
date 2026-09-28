@@ -89,14 +89,14 @@ El binario puede ejecutarse anteponiendo `sudo` o, de forma recomendada, otorgá
 
 ```bash
 sudo setcap cap_net_raw,cap_net_admin=eip target/release/tcp_story_teller
-./target/release/tcp_story_teller localmente
+./target/release/tcp_story_teller web
 ```
 
 #### macOS
 En sistemas basados en BSD/macOS, la captura accede a los dispositivos `/dev/bpf*`. Requiere ejecutar el binario anteponiendo `sudo`:
 
 ```bash
-sudo ./target/release/tcp_story_teller localmente
+sudo ./target/release/tcp_story_teller web
 ```
 
 *(Opcional: Si se tiene instalado Wireshark, el paquete complementario `ChmodBPF` permite dar acceso a los dispositivos BPF a usuarios locales sin usar `sudo`).*

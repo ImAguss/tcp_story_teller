@@ -13,7 +13,7 @@ fn obtener_interfaz(interfaz: Option<String>) -> Option<Device> {
     }
 
     for i in interfaces {
-        if !i.0.is_loopback() && i.0.is_running() && !i.0.ips.is_empty() {
+        if !i.0.is_loopback() && i.0.is_up() && !i.0.ips.is_empty() {
             return Some(i);
         }
     }
