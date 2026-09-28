@@ -1,6 +1,9 @@
 use crate::{
-    dominio::{contratos::Peticion, contratos::TipoPeticion, datagrama_tcp::Extremo},
-    escenarios::utiles::{abrir_socket, crear_stream},
+    dominio::{
+        contratos::{Peticion, TipoPeticion},
+        datagrama_tcp::Extremo,
+    },
+    escenarios::utiles::{abrir_socket, crear_stream, enviar_datos},
 };
 use std::{
     io::{Read, Write},
@@ -57,7 +60,13 @@ pub fn ejecutar_localmente(server: Extremo, local: bool) -> std::io::Result<()> 
         ejecutar_cliente(server);
         servidor.join().unwrap();
     } else {
-        ejecutar_cliente(server);
+        let socket = format!("{}:{}", server.ip, server.puerto);
+        let mut stream = crear_stream(socket).unwrap();
+        let peticion = Peticion {
+            id_peticion: 45,
+            accion: TipoPeticion::ObtenerTodosLosUsuarios,
+        };
+        enviar_datos(&mut stream, peticion)?;
     }
 
     Ok(())
