@@ -93,13 +93,13 @@ pub fn enviar_datos(stream: &mut TcpStream, peticion: Peticion) -> std::io::Resu
     Ok(())
 }
 
-pub fn abrir_socket(socket: Extremo, limite_conexiones: usize) -> std::io::Result<()> {
+pub fn abrir_socket(socket: Extremo) -> std::io::Result<()> {
     let socket = format!("{}:{}", socket.ip, socket.puerto);
     let listener = TcpListener::bind(socket)?;
 
     println!("Escuchando en {}", listener.local_addr()?);
 
-    for conexion in listener.incoming().take(limite_conexiones) {
+    for conexion in listener.incoming() {
         match conexion {
             Ok(mut stream) => {
                 std::thread::spawn(move || {
