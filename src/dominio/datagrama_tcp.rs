@@ -41,6 +41,7 @@ pub struct CabeceraTCP {
     pub checksum: u16,
     pub puntero_urgente: u16,
 
+    pub factor_escala: Option<u8>,
     pub payload: Option<Vec<u8>>,
     pub opciones: Vec<OpcionesTCP>,
     pub longitud_datos: usize,
@@ -160,6 +161,15 @@ impl std::fmt::Display for CabeceraTCP {
                 "Ventana de Recepción:    {} bytes",
                 self.ventana_recepcion
             ))
+        )?;
+        let factor_str = match self.factor_escala {
+            Some(shift) => format!("×{} (shift: {})", 1u32 << shift, shift),
+            None => "Ninguno".to_string(),
+        };
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!("Factor de Escala (WS):   {}", factor_str))
         )?;
         let opciones_bytes = self.longitud_cabecera_bytes.saturating_sub(20);
         writeln!(

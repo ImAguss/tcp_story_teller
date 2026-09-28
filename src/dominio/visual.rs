@@ -317,6 +317,7 @@ impl PasoTCP {
         puntero_urgente: u16,
         payload: Option<Vec<u8>>,
         opciones: Vec<OpcionesTCP>,
+        factor_escala: Option<u8>,
         longitud_datos: usize,
     ) -> Self {
         return PasoTCP {
@@ -336,6 +337,7 @@ impl PasoTCP {
                 puntero_urgente,
                 payload,
                 opciones,
+                factor_escala,
                 longitud_datos,
             },
             direccion,

@@ -204,6 +204,10 @@ impl InformeSesion {
                 }
             })
             .collect();
+        let factor_escala = match direccion {
+            Direccion::ClienteServidor => self.ws_scale_cliente,
+            Direccion::ServidorCliente => self.ws_scale_servidor,
+        };
 
         let paso = PasoTCP::new(
             indice,
@@ -223,6 +227,7 @@ impl InformeSesion {
             puntero_urgente,
             payload,
             opciones,
+            factor_escala,
             len_datos,
         );
         self.pasos.push(paso);
