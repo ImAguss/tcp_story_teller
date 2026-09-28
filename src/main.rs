@@ -2,7 +2,8 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use clap::{Parser, Subcommand};
 use tcp_story_teller::{
-    Extremo, PasoTCP, ejecutar_escenario_web_rafaga, ejecutar_escenario_web_simple, escenario_local,
+    Extremo, PasoTCP, ejecutar_escenario_web_pesado, ejecutar_escenario_web_rafaga,
+    ejecutar_escenario_web_simple, escenario_local,
 };
 use tcp_story_teller::{enviar_datos, escucha_pasiva, renderizar_diapositivas};
 
@@ -41,6 +42,8 @@ enum Comando {
         #[arg(short, long)]
         rafaga: bool,
         #[arg(short, long)]
+        pesado: bool,
+        #[arg(short, long)]
         interfaz: Option<String>,
     },
     Localmente,
@@ -74,9 +77,18 @@ fn main() {
             }
         }
 
-        Comando::Web { rafaga, interfaz } => {
+        Comando::Web {
+            rafaga,
+            pesado,
+            interfaz,
+        } => {
             let diapositivas = if rafaga {
                 match ejecutar_escenario_web_rafaga(interfaz) {
+                    Ok(d) => Some(d.pasos),
+                    Err(_) => None,
+                }
+            } else if pesado {
+                match ejecutar_escenario_web_pesado(interfaz) {
                     Ok(d) => Some(d.pasos),
                     Err(_) => None,
                 }
