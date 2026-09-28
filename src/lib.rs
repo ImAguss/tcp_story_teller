@@ -123,7 +123,7 @@ pub fn enviar_datos(
 pub fn escenario_local() -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(Some("lo".to_string()), 80) {
+        let _informe = match capturar_paquetes(Some("lo".to_string()), 9400) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };
