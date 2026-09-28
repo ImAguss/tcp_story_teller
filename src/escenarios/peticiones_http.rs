@@ -1,9 +1,7 @@
 use crate::escenarios::utiles::crear_stream;
 use std::{
     io::{Read, Write},
-    net::TcpStream,
     str::FromStr,
-    time::Duration,
 };
 
 const GET: &str = "GET /get HTTP/1.1\r\nHost: httpbin.org\r\nUser-Agent: TcpStoryTeller/0.1\r\nConnection: close\r\n\r\n";
@@ -44,7 +42,7 @@ pub fn enviar_datos_http_rafaga() -> std::io::Result<()> {
         cuerpo
     );
 
-    stream.write(peticion.as_bytes())?;
+    stream.write_all(peticion.as_bytes())?;
 
     let mut buffer = [0u8; 4096];
     while let Ok(bytes_leidos) = stream.read(&mut buffer) {
