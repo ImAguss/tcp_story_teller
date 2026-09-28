@@ -29,11 +29,11 @@ enum Comando {
     },
 
     Conectar {
-        #[arg(short, long)]
+        #[arg(short = 'i', long)]
         ip: IpAddr,
         #[arg(short, long, default_value_t = 4000)]
         puerto: u16,
-        #[arg(short, long)]
+        #[arg(short = 'I', long)]
         interfaz: Option<String>,
     },
 
