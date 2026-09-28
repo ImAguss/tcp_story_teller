@@ -3,13 +3,13 @@ use pcapture::{Capture, Device};
 use crate::captura::errores::ErrorCaptura;
 use crate::dominio::estados::InformeSesion;
 
-fn obtener_interfaz(interfaz: Option<&str>) -> Option<Device> {
+fn obtener_interfaz(interfaz: Option<String>) -> Option<Device> {
     let Ok(interfaces) = Device::list() else {
         return None;
     };
 
     if let Some(i) = interfaz {
-        return interfaces.into_iter().find(|x| x.0.name == i);
+        return interfaces.into_iter().find(|x| x.0.name == i.to_string());
     }
 
     for i in interfaces {
@@ -22,7 +22,7 @@ fn obtener_interfaz(interfaz: Option<&str>) -> Option<Device> {
 }
 
 pub fn capturar_paquetes(
-    interfaz: Option<&str>,
+    interfaz: Option<String>,
     puerto: u16,
 ) -> Result<InformeSesion, ErrorCaptura> {
     let interfaz = obtener_interfaz(interfaz).expect("Error al obtener interfaz activa.");
