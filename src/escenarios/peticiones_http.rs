@@ -24,25 +24,27 @@ pub fn enviar_datos_http_simple() -> std::io::Result<()> {
 
 pub fn enviar_datos_http_rafaga() -> std::io::Result<()> {
     let pagina = String::from_str("httpbin.org:80").unwrap();
-    let mut stream = match crear_stream(pagina) {
-        Ok(stream) => stream,
-        _ => panic!("Error al crear stream."),
-    };
+    let mut stream =
+        crear_stream(pagina).map_err(|_| std::io::Error::other("Fallo al crear stream"))?;
 
-    let cuerpo = "HOLA".repeat(20000);
-    let peticion = format!(
+    let peticion_get = "GET /get HTTP/1.1\r\nHost: httpbin.org\r\nUser-Agent: TcpStoryTeller/0.1\r\nConnection: keep-alive\r\n\r\n";
+    let cuerpo = "Hola Mundo desde Tcp Story Teller!";
+    let peticion_post = format!(
         "POST /post HTTP/1.1\r\n\
-         Host: httpbin.org\r\n\
-         User-Agent: TcpStoryTeller/0.1\r\n\
-         Connection: close\r\n\
-         Content-Type: text/plain\r\n\
-         Content-Length: {}\r\n\r\n\
-         {}",
+        Host: httpbin.org\r\n\
+        User-Agent: TcpStoryTeller/0.1\r\n\
+        Connection: keep-alive\r\n\
+        Content-Type: text/plain\r\n\
+        Content-Length: {}\r\n\r\n\
+        {}",
         cuerpo.len(),
-        cuerpo
+        cuerpo,
     );
-
-    stream.write_all(peticion.as_bytes())?;
+    let peticion_get_cerrar = "GET /get HTTP/1.1\r\nHost: httpbin.org\r\nUser-Agent: TcpStoryTeller/0.1\r\nConnection: close\r\n\r\n";
+    stream.set_nodelay(true)?;
+    stream.write_all(peticion_get.as_bytes())?;
+    stream.write_all(peticion_post.as_bytes())?;
+    stream.write_all(peticion_get_cerrar.as_bytes())?;
 
     let mut buffer = [0u8; 4096];
     while let Ok(bytes_leidos) = stream.read(&mut buffer) {
