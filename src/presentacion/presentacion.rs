@@ -18,7 +18,6 @@ impl Drop for HandleTerminal {
 
 pub fn ejecutar_presentacion(diapositivas: Vec<PasoTCP>) -> std::io::Result<()> {
     let mut indice: usize = 0;
-    let max_len = diapositivas.len() + 1;
     let _handle = HandleTerminal;
 
     enable_raw_mode()?;
@@ -43,10 +42,8 @@ pub fn ejecutar_presentacion(diapositivas: Vec<PasoTCP>) -> std::io::Result<()> 
                             indice -= 1
                         }
                     }
-                    KeyCode::Right => {
-                        if indice > max_len {
-                            break;
-                        } else {
+                    KeyCode::Right | KeyCode::Enter => {
+                        if indice + 1 < diapositivas.len() {
                             indice += 1;
                         }
                     }
