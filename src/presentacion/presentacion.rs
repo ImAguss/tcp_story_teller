@@ -19,14 +19,21 @@ impl Drop for HandleTerminal {
 pub fn ejecutar_presentacion(diapositivas: Vec<PasoTCP>) -> std::io::Result<()> {
     let mut indice: usize = 0;
     let _handle = HandleTerminal;
+    let (ancho_bloque, alto_bloque) = if !diapositivas.is_empty() {
+        diapositivas[indice].dimensiones()
+    } else {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "No se detectaron diapositivas.",
+        ));
+    };
 
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen, cursor::Hide)?;
     loop {
         let (ancho_terminal, alto_terminal) = crossterm::terminal::size()?;
-        let (ancho_bloque, alto_bloque) = diapositivas[indice].dimensiones();
-        let x = (ancho_terminal.saturating_sub(ancho_bloque) / 2);
-        let y = (alto_terminal.saturating_sub(alto_bloque) / 2);
+        let x = ancho_terminal.saturating_sub(ancho_bloque) / 2;
+        let y = alto_terminal.saturating_sub(alto_bloque) / 2;
         execute!(stdout(), Clear(ClearType::All))?;
 
         for (i, linea) in diapositivas[indice].bloque_completo().lines().enumerate() {
