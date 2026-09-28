@@ -52,10 +52,18 @@ fn main() {
     let cli = CLI::parse();
 
     let diapositivas: Option<Vec<PasoTCP>> = match cli.comando {
-        Comando::Escuchar { puerto, interfaz } => match escucha_pasiva(puerto, interfaz) {
-            Ok(d) => Some(d.pasos),
-            Err(_) => None,
-        },
+        Comando::Escuchar { puerto, interfaz } => {
+            let pc_local = Extremo {
+                ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                puerto,
+            };
+            let diapositivas = match escucha_pasiva(pc_local, interfaz) {
+                Ok(d) => Some(d.pasos),
+                Err(_) => None,
+            };
+            diapositivas
+        }
+
         Comando::Conectar {
             ip,
             puerto,
@@ -67,6 +75,7 @@ fn main() {
                 Err(_) => None,
             }
         }
+
         Comando::Web {
             simple,
             verbose,
@@ -85,6 +94,7 @@ fn main() {
             };
             diapositivas
         }
+
         Comando::Localmente => match escenario_local() {
             Ok(d) => Some(d.pasos),
             Err(_) => None,
