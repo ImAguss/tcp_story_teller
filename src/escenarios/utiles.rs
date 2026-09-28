@@ -4,6 +4,16 @@ use crate::dominio::contratos::{
 use crate::dominio::datagrama_tcp::Extremo;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::time::Duration;
+
+pub fn crear_stream(socket: String) -> std::io::Result<TcpStream> {
+    let mut stream = TcpStream::connect(socket)?;
+
+    stream.set_read_timeout(Some(Duration::from_secs(20)))?;
+    stream.set_write_timeout(Some(Duration::from_secs(20)))?;
+
+    return Ok(stream);
+}
 
 /// Procesa la petición recibida y devuelve una Respuesta tipada según la acción solicitada.
 fn leer_buffer(stream: &mut TcpStream) -> std::io::Result<()> {
