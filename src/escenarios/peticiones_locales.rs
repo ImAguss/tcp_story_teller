@@ -5,6 +5,7 @@ use crate::{
 use std::{
     io::{Read, Write},
     net::TcpStream,
+    thread,
     time::Duration,
 };
 
@@ -24,14 +25,7 @@ fn cliente(server: Extremo, peticiones: Vec<Peticion>) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn ejecutar(server: Extremo) -> std::io::Result<()> {
-    let socket_server = server.clone();
-    let servidor = std::thread::spawn(move || {
-        if let Err(e) = abrir_socket(socket_server, 1) {
-            eprintln!("Error al iniciar servidor {}", e);
-        }
-    });
-
+fn ejecutar_cliente(server: Extremo) -> std::io::Result<()> {
     std::thread::sleep(Duration::from_millis(120));
 
     let peticion1 = Peticion {
@@ -49,8 +43,22 @@ pub fn ejecutar(server: Extremo) -> std::io::Result<()> {
     let peticiones = vec![peticion1, peticion2, peticion3];
 
     cliente(server, peticiones)?;
+    Ok(())
+}
 
-    servidor.join().unwrap();
+pub fn ejecutar_localmente(server: Extremo, local: bool) -> std::io::Result<()> {
+    if local {
+        let socket_server = server.clone();
+        let servidor = std::thread::spawn(move || {
+            if let Err(e) = abrir_socket(socket_server) {
+                eprintln!("Error al iniciar servidor {}", e);
+            }
+        });
+        ejecutar_cliente(server);
+        servidor.join().unwrap();
+    } else {
+        ejecutar_cliente(server);
+    }
 
     Ok(())
 }
