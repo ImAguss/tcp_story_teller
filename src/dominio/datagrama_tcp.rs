@@ -56,18 +56,31 @@ impl std::fmt::Display for Extremo {
 
 impl std::fmt::Display for FlagsTCP {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match (self.syn, self.ack, self.fin, self.psh, self.rst, self.urg) {
-            (true, true, false, false, false, false) => return write!(f, "SYN-ACK"),
-            (false, true, true, false, false, false) => return write!(f, "ACK-FIN"),
-            (false, true, false, true, false, false) => return write!(f, "ACK-PSH"),
-            (false, true, false, false, true, false) => return write!(f, "ACK-RST"),
-            (true, false, false, false, false, false) => return write!(f, "SYN"),
-            (false, true, false, false, false, false) => return write!(f, "ACK"),
-            (false, false, true, false, false, false) => return write!(f, "FIN"),
-            (false, false, false, true, false, false) => return write!(f, "PSH"),
-            (false, false, false, false, true, false) => return write!(f, "RST"),
-            (false, false, false, false, false, true) => return write!(f, "URG"),
-            _ => return write!(f, "NO SE DETECTARON FLAGS VALIDAS!!"),
+        let mut flags_activas = Vec::new();
+
+        if self.syn {
+            flags_activas.push("SYN");
+        }
+        if self.ack {
+            flags_activas.push("ACK");
+        }
+        if self.psh {
+            flags_activas.push("PSH");
+        }
+        if self.rst {
+            flags_activas.push("RST");
+        }
+        if self.urg {
+            flags_activas.push("URG");
+        }
+        if self.fin {
+            flags_activas.push("FIN");
+        }
+
+        if flags_activas.is_empty() {
+            write!(f, "NINGUNA")
+        } else {
+            write!(f, "{}", flags_activas.join("-"))
         }
     }
 }
@@ -108,24 +121,71 @@ impl std::fmt::Display for CabeceraTCP {
 
         writeln!(f, "┌── [ INSPECCIÓN DE CABECERA TCP ] {}┐", "─".repeat(44))?;
         writeln!(f, "{}", empty_line)?;
-        writeln!(f, "{}", pad_line(&format!("Flujo:       {}  ────────────►  {}", self.origen, self.destino)))?;
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!(
+                "Flujo:       {}  ────────────►  {}",
+                self.origen, self.destino
+            ))
+        )?;
         writeln!(f, "{}", empty_line)?;
         writeln!(f, "{}", divider)?;
-        writeln!(f, "{}", pad_line(&format!("Secuencia (Seq):         {}          (Absoluto: {})", self.seq_rel, self.seq_abs)))?;
-        writeln!(f, "{}", pad_line(&format!("Reconocimiento (Ack):    {}", ack_str)))?;
-        writeln!(f, "{}", pad_line(&format!("Flags de Control:        [ {} ]", self.flags_activas)))?;
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!(
+                "Secuencia (Seq):         {}          (Absoluto: {})",
+                self.seq_rel, self.seq_abs
+            ))
+        )?;
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!("Reconocimiento (Ack):    {}", ack_str))
+        )?;
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!(
+                "Flags de Control:        [ {} ]",
+                self.flags_activas
+            ))
+        )?;
         writeln!(f, "{}", divider)?;
-        writeln!(f, "{}", pad_line(&format!("Ventana de Recepción:    {} bytes", self.ventana_recepcion)))?;
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!(
+                "Ventana de Recepción:    {} bytes",
+                self.ventana_recepcion
+            ))
+        )?;
         let opciones_bytes = self.longitud_cabecera_bytes.saturating_sub(20);
-        writeln!(f, "{}", pad_line(&format!("Tamaño Cabecera:         {} bytes (Base: 20B + Opciones: {}B)", self.longitud_cabecera_bytes, opciones_bytes)))?;
-        writeln!(f, "{}", pad_line(&format!("Opciones TCP:            {}", opciones_str)))?;
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!(
+                "Tamaño Cabecera:         {} bytes (Base: 20B + Opciones: {}B)",
+                self.longitud_cabecera_bytes, opciones_bytes
+            ))
+        )?;
+        writeln!(
+            f,
+            "{}",
+            pad_line(&format!("Opciones TCP:            {}", opciones_str))
+        )?;
 
         if let Some(ref bytes) = self.payload {
             if !bytes.is_empty() {
                 writeln!(f, "{}", empty_line)?;
                 writeln!(f, "{}", divider)?;
                 if let Ok(json_val) = serde_json::from_slice::<serde_json::Value>(bytes) {
-                    writeln!(f, "{}", pad_line(&format!("Carga Útil (JSON - {} bytes):", bytes.len())))?;
+                    writeln!(
+                        f,
+                        "{}",
+                        pad_line(&format!("Carga Útil (JSON - {} bytes):", bytes.len()))
+                    )?;
                     if let Ok(pretty) = serde_json::to_string_pretty(&json_val) {
                         let lineas: Vec<&str> = pretty.lines().collect();
                         let max_lineas = 8;
@@ -152,9 +212,17 @@ impl std::fmt::Display for CabeceraTCP {
                 } else if let Ok(texto) = std::str::from_utf8(bytes) {
                     let texto_limpio = texto.trim();
                     if texto_limpio.chars().count() <= 68 && !texto_limpio.contains('\n') {
-                        writeln!(f, "{}", pad_line(&format!("Carga Útil (Texto):      {}", texto_limpio)))?;
+                        writeln!(
+                            f,
+                            "{}",
+                            pad_line(&format!("Carga Útil (Texto):      {}", texto_limpio))
+                        )?;
                     } else {
-                        writeln!(f, "{}", pad_line(&format!("Carga Útil (Texto - {} bytes):", bytes.len())))?;
+                        writeln!(
+                            f,
+                            "{}",
+                            pad_line(&format!("Carga Útil (Texto - {} bytes):", bytes.len()))
+                        )?;
                         let lineas: Vec<&str> = texto_limpio.lines().collect();
                         let max_lineas = 6;
                         for linea in lineas.iter().take(max_lineas) {
@@ -184,16 +252,28 @@ impl std::fmt::Display for CabeceraTCP {
                         .map(|b| format!("{:02X}", b))
                         .collect::<Vec<_>>()
                         .join(" ");
-                    writeln!(f, "{}", pad_line(&format!("Carga Útil (Hex - {} bytes):", bytes.len())))?;
+                    writeln!(
+                        f,
+                        "{}",
+                        pad_line(&format!("Carga Útil (Hex - {} bytes):", bytes.len()))
+                    )?;
                     writeln!(f, "{}", pad_line(&format!("  {} ...", hex_preview)))?;
                 }
             } else {
                 writeln!(f, "{}", empty_line)?;
-                writeln!(f, "{}", pad_line("Carga Útil (Payload):    0 bytes (Tráfico de control puro)"))?;
+                writeln!(
+                    f,
+                    "{}",
+                    pad_line("Carga Útil (Payload):    0 bytes (Tráfico de control puro)")
+                )?;
             }
         } else {
             writeln!(f, "{}", empty_line)?;
-            writeln!(f, "{}", pad_line("Carga Útil (Payload):    0 bytes (Tráfico de control puro)"))?;
+            writeln!(
+                f,
+                "{}",
+                pad_line("Carga Útil (Payload):    0 bytes (Tráfico de control puro)")
+            )?;
         }
 
         writeln!(f, "{}", empty_line)?;
