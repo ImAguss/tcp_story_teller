@@ -27,6 +27,8 @@ pub struct InformeSesion {
     pub contador_ack_dupl: u8,
     pub ventana_contexto_actual: u16,
 
+    pub ws_scale_cliente: Option<u8>,
+    pub ws_scale_servidor: Option<u8>,
     pub tiempo_inicio: Option<std::time::Instant>,
     pub pasos: Vec<PasoTCP>,
 }
@@ -41,6 +43,8 @@ impl InformeSesion {
             ultimo_ack_visto: None,
             contador_ack_dupl: 0,
             ventana_contexto_actual: 0,
+            ws_scale_cliente: None,
+            ws_scale_servidor: None,
             tiempo_inicio: None,
             pasos: Vec::new(),
         };
@@ -185,6 +189,11 @@ impl InformeSesion {
                 if let Some(opcion) = x.ok() {
                     match opcion {
                         TcpOptionElement::WindowScale(wss) => {
+                            if tcp.syn() && !tcp.ack() {
+                                self.ws_scale_cliente = Some(wss);
+                            } else if tcp.syn() && tcp.ack() {
+                                self.ws_scale_servidor = Some(wss);
+                            }
                             Some(OpcionesTCP::TamañoVentana(wss))
                         }
                         TcpOptionElement::MaximumSegmentSize(mss) => Some(OpcionesTCP::Mss(mss)),
