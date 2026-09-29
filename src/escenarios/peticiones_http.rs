@@ -30,7 +30,7 @@ pub fn enviar_datos_http_pesado() -> std::io::Result<()> {
     let mut stream =
         crear_stream(pagina).map_err(|_| std::io::Error::other("Fallo al crear stream"))?;
 
-    let cuerpo = "Hola Mundo desde Tcp Story Teller!".repeat(20000);
+    let cuerpo = "Hola Mundo desde Tcp Story Teller!".repeat(300);
     let peticion_post = format!(
         "POST /post HTTP/1.1\r\n\
         Host: httpbin.org\r\n\

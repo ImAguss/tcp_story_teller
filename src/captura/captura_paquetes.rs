@@ -8,13 +8,35 @@ fn obtener_interfaz(interfaz: Option<String>) -> Option<Device> {
         return None;
     };
 
-    if let Some(i) = interfaz {
-        return interfaces.into_iter().find(|x| x.0.name == i.to_string());
-    }
+    match interfaz.as_deref() {
+        Some("lo") => {
+            return interfaces
+                .iter()
+                .find(|x| {
+                    x.0.name.to_lowercase().contains("loopback")
+                        || x.0.name == "lo"
+                        || x.0.description.to_lowercase().contains("loopback")
+                })
+                .cloned();
+        }
+        Some(i) => {
+            return interfaces
+                .iter()
+                .find(|x| x.0.name == i || x.0.description == i)
+                .cloned();
+        }
+        None => {
+            for i in interfaces {
+                #[cfg(unix)]
+                if !i.0.is_loopback() && i.0.is_up() && !i.0.ips.is_empty() {
+                    return Some(i);
+                };
 
-    for i in interfaces {
-        if !i.0.is_loopback() && i.0.is_up() && !i.0.ips.is_empty() {
-            return Some(i);
+                #[cfg(windows)]
+                if !i.0.ips.is_empty() && !i.0.ips.iter().any(|ip| ip.ip().is_loopback()) {
+                    return Some(i);
+                }
+            }
         }
     }
 
