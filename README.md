@@ -70,19 +70,30 @@ La herramienta cuenta con una interfaz **TUI (Terminal User Interface)** en pant
 
 ## Instalación y Requisitos
 
-### Requisitos Previos Generales
-- **Rust y Cargo** (edición 2024 o versión estable reciente).
+### Requisitos Previos
 
-### 1. Clonar y Compilar en Release
+- **Rust y Cargo:** Versión estable reciente (edición 2024 soportada).
+- **Dependencias nativas por plataforma:**
+  - **Linux:** Requiere las bibliotecas de desarrollo de `libpcap`:
+    ```bash
+    sudo apt install libpcap-dev    # Debian / Ubuntu / Mint
+    sudo dnf install libpcap-devel  # Fedora / RHEL
+    sudo pacman -S libpcap          # Arch Linux
+    ```
+  - **macOS:** Ya incluye `libpcap` de manera predeterminada en el sistema.
+  - **Windows:** No requiere configurar variables de entorno del SDK manualmente. El repositorio ya incluye las bibliotecas de importación (`Packet.lib` y `wpcap.lib`) en el directorio `./lib/`, y `build.rs` las enlaza automáticamente al compilar.
+
+### 1. Clonar y Compilar
+
 ```bash
 git clone https://github.com/ImAguss/tcp_story_teller
 cd tcp_story_teller
 cargo build --release
 ```
 
-### 2. Configuración de Permisos por Plataforma
+### 2. Configuración de Permisos y Controladores de Red
 
-La captura de paquetes crudos en interfaces de red requiere privilegios de bajo nivel en el sistema operativo.
+La captura y decodificación de paquetes crudos en interfaces de red requiere privilegios de bajo nivel en el sistema operativo.
 
 #### Linux
 El binario puede ejecutarse anteponiendo `sudo` o, de forma recomendada, otorgándole capacidades de red para no requerir privilegios de superusuario en cada ejecución:
@@ -105,8 +116,10 @@ sudo ./target/release/tcp_story_teller web
 En Windows, el sistema operativo no expone sockets crudos directamente para captura en modo promiscuo. Se requiere instalar el controlador de captura **Npcap**:
 
 1. Descargar e instalar [Npcap](https://npcap.com/#download).
-2. Durante el asistente de instalación, asegurarse de marcar la casilla: **"Install Npcap in WinPcap API-compatible Mode"**.
-3. Abrir **PowerShell** o **Windows Terminal** con privilegios de **Administrador**.
+2. Durante el asistente de instalación, asegurarse de marcar obligatoriamente las siguientes casillas:
+   - **"Install Npcap in WinPcap API-compatible Mode"** (provee las DLLs en el sistema para la captura de red).
+   - **"Support loopback traffic ("Npcap Loopback Adapter")"** (indispensable para capturar en el modo de simulación `localmente`).
+3. Abrir **PowerShell** o **Windows Terminal** con la opción **"Ejecutar como Administrador"**.
 4. Ejecutar el binario compilado:
    ```powershell
    .\target\release\tcp_story_teller.exe web
