@@ -26,7 +26,16 @@
 
 ---
 
-## Próximas Tareas
+## Refactorizar codigo
+
+- [ ] **visual.rs**: El constructor de PasoTCP usa demasiados argumentos, hay que simplificarlo con el patron de diseño **Builder**
+- [ ] **estados.rs**: InformeSesion ocupa muchisimos argumentos y mantiene muchos estados, hay que crear estructuras aparte que agrupen características favoreciendo la composicion.
+- [ ] **estados.rs**: La funcion deducir etapa es monolitica y tiene muchos ifs anidados, hay que usar el patron de diseño strategy, definiendo traits que agrupen esas funciones ya sea con genericos o con dyn.
+- [ ] **presentacion.rs**: La funcion toma el ownership del vector de pasos sin tener la necesidad de modificarlo, solo lee sus datos, cambiarlo a un prestamo.
+- [ ] **estados.rs**: Implementar el patron de diseño default para evitar tener tantos options mal inicializados.
+
+
+## Nuevas Funcionalidades
 
 ### 1. Nuevos Protocolos de Red y Transporte
 
