@@ -22,10 +22,11 @@ use crate::presentacion::presentacion::ejecutar_presentacion;
 pub fn escucha_pasiva(
     pc_local: Extremo,
     interfaz: Option<String>,
+    wireshark: bool,
 ) -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(interfaz, pc_local.puerto) {
+        let _informe = match capturar_paquetes(interfaz, pc_local.puerto, wireshark) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };
@@ -51,11 +52,12 @@ pub fn escucha_pasiva(
 
 pub fn ejecutar_escenario_web_simple(
     interfaz: Option<String>,
+    wireshark: bool,
 ) -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
 
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(interfaz, 80) {
+        let _informe = match capturar_paquetes(interfaz, 80, wireshark) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };
@@ -79,11 +81,12 @@ pub fn ejecutar_escenario_web_simple(
 
 pub fn ejecutar_escenario_web_pesado(
     interfaz: Option<String>,
+    wireshark: bool,
 ) -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
 
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(interfaz, 80) {
+        let _informe = match capturar_paquetes(interfaz, 80, wireshark) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };
@@ -107,11 +110,12 @@ pub fn ejecutar_escenario_web_pesado(
 
 pub fn ejecutar_escenario_web_rafaga(
     interfaz: Option<String>,
+    wireshark: bool,
 ) -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
 
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(interfaz, 80) {
+        let _informe = match capturar_paquetes(interfaz, 80, wireshark) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };
@@ -136,10 +140,11 @@ pub fn ejecutar_escenario_web_rafaga(
 pub fn enviar_datos(
     otra_pc: Extremo,
     interfaz: Option<String>,
+    wireshark: bool,
 ) -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(interfaz, otra_pc.puerto) {
+        let _informe = match capturar_paquetes(interfaz, otra_pc.puerto, wireshark) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };
@@ -158,10 +163,10 @@ pub fn enviar_datos(
     Ok(informe_generado)
 }
 
-pub fn escenario_local() -> Result<InformeSesion, ErrorCaptura> {
+pub fn escenario_local(wireshark: bool) -> Result<InformeSesion, ErrorCaptura> {
     let (tx, rx) = mpsc::channel();
     let _handlesniffer = std::thread::spawn(move || {
-        let _informe = match capturar_paquetes(Some("lo".to_string()), 9400) {
+        let _informe = match capturar_paquetes(Some("lo".to_string()), 9400, wireshark) {
             Ok(i) => tx.send(i),
             Err(_) => panic!("Error al capturar paquetes."),
         };

@@ -1,3 +1,4 @@
+use pcapture::fs::pcapng::GeneralBlock;
 use pcapture::{Capture, Device};
 
 use crate::captura::errores::ErrorCaptura;
@@ -46,12 +47,14 @@ fn obtener_interfaz(interfaz: Option<String>) -> Option<Device> {
 pub fn capturar_paquetes(
     interfaz: Option<String>,
     puerto: u16,
+    wireshark: bool,
 ) -> Result<InformeSesion, ErrorCaptura> {
     let interfaz = obtener_interfaz(interfaz).ok_or(ErrorCaptura::ErrorInterfaz)?;
     let mut capturador =
         Capture::new(&interfaz.0.name).map_err(|_| ErrorCaptura::ErrorCapturador)?;
 
     let filtro = format!("tcp port {}", puerto);
+    let path = "test.pcapng";
     capturador
         .set_filter(filtro.as_str())
         .map_err(|_| ErrorCaptura::ErrorCapturador)?;
@@ -61,16 +64,33 @@ pub fn capturar_paquetes(
 
     let mut tiempo_ultimo_paquete = std::time::Instant::now();
     let tiempo_inactividad = std::time::Duration::from_secs(6);
+    let pbo = pcapture::PcapByteOrder::WiresharkDefault;
+
+    let mut pcapng = capturador
+        .gen_pcapng_header(pbo)
+        .map_err(|_| ErrorCaptura::ErrorCapturador)?;
 
     loop {
-        if let Ok(paquete) = capturador.next_as_vec() {
-            if let Ok(()) = informe.procesar_paquete(paquete) {
-                if informe.conexion_terminada() {
-                    return Ok(informe);
-                }
+        if let Ok(paquete) = capturador.next_as_pcapng() {
+            pcapng.append(paquete.clone());
+            let paq = match paquete {
+                GeneralBlock::EnhancedPacketBlock(b) => b,
+                _ => return Err(ErrorCaptura::SalidaInesperada),
+            };
+
+            if let Ok(()) = informe.procesar_paquete(paq.packet_data) {
                 tiempo_ultimo_paquete = std::time::Instant::now();
             }
         }
+        if informe.conexion_terminada() {
+            if wireshark {
+                pcapng
+                    .write_all(path)
+                    .map_err(|_| ErrorCaptura::ErrorCapturador)?;
+            }
+            return Ok(informe);
+        }
+
         if !informe.pasos.is_empty() && tiempo_ultimo_paquete.elapsed() >= tiempo_inactividad {
             return Ok(informe);
         }

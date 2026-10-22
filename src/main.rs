@@ -27,6 +27,8 @@ enum Comando {
         puerto: u16,
         #[arg(short, long)]
         interfaz: Option<String>,
+        #[arg(short, long, default_value_t = false)]
+        wireshark: bool,
     },
 
     Conectar {
@@ -36,6 +38,8 @@ enum Comando {
         puerto: u16,
         #[arg(short = 'I', long)]
         interfaz: Option<String>,
+        #[arg(short, long, default_value_t = false)]
+        wireshark: bool,
     },
 
     Web {
@@ -45,20 +49,29 @@ enum Comando {
         pesado: bool,
         #[arg(short, long)]
         interfaz: Option<String>,
+        #[arg(short, long, default_value_t = false)]
+        wireshark: bool,
     },
-    Localmente,
+    Localmente {
+        #[arg(short, long, default_value_t = false)]
+        wireshark: bool,
+    },
 }
 
 fn main() {
     let cli = CLI::parse();
 
     let diapositivas: Option<Vec<PasoTCP>> = match cli.comando {
-        Comando::Escuchar { puerto, interfaz } => {
+        Comando::Escuchar {
+            puerto,
+            interfaz,
+            wireshark,
+        } => {
             let pc_local = Extremo {
                 ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
                 puerto,
             };
-            let diapositivas = match escucha_pasiva(pc_local, interfaz) {
+            let diapositivas = match escucha_pasiva(pc_local, interfaz, wireshark) {
                 Ok(d) => Some(d.pasos),
                 Err(_) => None,
             };
@@ -69,9 +82,10 @@ fn main() {
             ip,
             puerto,
             interfaz,
+            wireshark,
         } => {
             let otra_pc = Extremo { ip, puerto };
-            match enviar_datos(otra_pc, interfaz) {
+            match enviar_datos(otra_pc, interfaz, wireshark) {
                 Ok(d) => Some(d.pasos),
                 Err(_) => None,
             }
@@ -81,19 +95,20 @@ fn main() {
             rafaga,
             pesado,
             interfaz,
+            wireshark,
         } => {
             let diapositivas = if rafaga {
-                match ejecutar_escenario_web_rafaga(interfaz) {
+                match ejecutar_escenario_web_rafaga(interfaz, wireshark) {
                     Ok(d) => Some(d.pasos),
                     Err(_) => None,
                 }
             } else if pesado {
-                match ejecutar_escenario_web_pesado(interfaz) {
+                match ejecutar_escenario_web_pesado(interfaz, wireshark) {
                     Ok(d) => Some(d.pasos),
                     Err(_) => None,
                 }
             } else {
-                match ejecutar_escenario_web_simple(interfaz) {
+                match ejecutar_escenario_web_simple(interfaz, wireshark) {
                     Ok(d) => Some(d.pasos),
                     Err(_) => None,
                 }
@@ -101,7 +116,7 @@ fn main() {
             diapositivas
         }
 
-        Comando::Localmente => match escenario_local() {
+        Comando::Localmente { wireshark } => match escenario_local(wireshark) {
             Ok(d) => Some(d.pasos),
             Err(_) => None,
         },
