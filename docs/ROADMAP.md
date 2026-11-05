@@ -28,9 +28,13 @@
 
 ## Refactorizar codigo
 
+- [ ] **Arreglar direccion de dependencias y firma de presentacion.rs cambiando diapositivas a un prestamo**.
+- [ ] **Agregar un mejor manejo de errores con thiserror**.
+- [ ] **Agregar Tests Unitarios**.
+- [ ] **estados.rs**: La funcion deducir etapa es monolitica y tiene muchos ifs anidados, hay que usar un enum para poder modelar cada caso y capturarlos con un match.
+- [ ] **Corregir las retenciones de memoria que viven mas tiempo del necesario**: estados.rs y captura_paquetes.rs.
 - [ ] **visual.rs**: El constructor de PasoTCP usa demasiados argumentos, hay que simplificarlo con el patron de diseño **Builder**
 - [ ] **estados.rs**: InformeSesion ocupa muchisimos argumentos y mantiene muchos estados, hay que crear estructuras aparte que agrupen características favoreciendo la composicion.
-- [ ] **estados.rs**: La funcion deducir etapa es monolitica y tiene muchos ifs anidados, hay que usar el patron de diseño strategy, definiendo traits que agrupen esas funciones ya sea con genericos o con dyn.
 - [ ] **presentacion.rs**: La funcion toma el ownership del vector de pasos sin tener la necesidad de modificarlo, solo lee sus datos, cambiarlo a un prestamo.
 - [ ] **estados.rs**: Implementar el patron de diseño default para evitar tener tantos options mal inicializados.
 
